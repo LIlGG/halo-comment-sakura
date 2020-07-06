@@ -296,10 +296,16 @@ export default {
           )
         }
       });
-      
       let dom;
       if(newComment.parentId == 0) {
-        dom = elDom.getElementsByClassName("commentwrap")[0];
+        if(elDom.getElementsByClassName("commentwrap").length > 0) {
+          dom = elDom.getElementsByClassName("commentwrap")[0];
+        } else {
+          dom = document.createElement("ul");
+          dom.setAttribute("class", "commentwrap");
+          let emptyDom = elDom.getElementsByClassName("comment-empty")[0];
+          emptyDom.parentNode.replaceChild(dom, emptyDom);
+        }
       } else {
         // 获取li
         let parentDom = elDom.getElementsByClassName("comment-" + this.replyComment.id)[0];
