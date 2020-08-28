@@ -118,3 +118,20 @@ export function return2Br(str) {
     return str.replace(/\r?\n/g,"<br />");
 }
 
+
+//判断一个元素是否在可视区域内
+export function isInVisibleArea(elem, root){
+    if(!elem || !elem.getBoundingClientRect) return false;
+
+    var clientHeight = window.innerHeight;
+    var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+    // 这里需要加上根节点距顶端的距离
+    var rootOffsetTop = root.offsetTop;
+    var offsetTop = elem.offsetTop + rootOffsetTop;
+    var objHeight = elem.offsetHeight;
+    if((offsetTop + objHeight) < (scrollTop + clientHeight) && (offsetTop + objHeight) > scrollTop) {
+        return true;
+    }
+
+    return false;
+}

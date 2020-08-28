@@ -5,8 +5,7 @@
     class="comment"
     :class="commentClass"
     itemtype="http://schema.org/Comment"
-    itemprop="comment"
-  >
+    itemprop="comment">
     <div class="contents">
       <div class="main shadow">
         <div class="profile">
@@ -25,7 +24,7 @@
                 </a>
               </h4>
             </div>
-            <a rel="nofollow" class="comment-reply-link" :style="editing?'display:block;':''" :href="'#respond-'+comment.id" @click="handleReplyClick">Reply</a>
+            <a rel="nofollow" class="comment-reply-link" :style="editing?'display:block;':''" href="javacript:void(0);" @click="handleReplyClick">Reply</a>
             <div class="right">
               <div class="info">
                 <time

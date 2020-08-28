@@ -4,7 +4,7 @@
       <small>
         <a
           rel="nofollow"
-          href="#respond-0"
+          href="javacript:void(0);"
           class="cancel-comment-reply-link"
           @click="cancelReply"
         >Cancel Reply</a>
@@ -111,7 +111,7 @@ import VEmojiPicker from "./EmojiPicker/VEmojiPicker";
 import emojiData from "./EmojiPicker/data/emojis2.js";
 import { renderedEmojiHtml } from "@/utils/emojiutil";
 import { isEmpty, isObject, getUrlKey, return2Br, isQQ } from "@/utils/util";
-import { validEmail, queryStringify } from "@/utils/util";
+import { validEmail, queryStringify, isInVisibleArea } from "@/utils/util";
 import commentApi from "../api/comment";
 import axios from "axios";
 import PopupInput from "./PopupInput";
@@ -191,9 +191,21 @@ export default {
       return this.globalData.replyId != 0;
     },
     isCurrReply() {
-      return (
-        !this.replyComment || this.globalData.replyId == this.replyComment.id
-      );
+      let isCurr = !this.replyComment || this.globalData.replyId == this.replyComment.id;
+      if(isCurr) {
+        // 获取当前评论组件相对于document的位置并跳转
+        if(this.isReply) {
+          this.viewJump((dom) => {
+            // 获取定位并移动视角
+            var rootOffsetTop = this.$root.$el.offsetTop;
+            var offsetTop = dom.offsetTop + rootOffsetTop;
+            var clientHeight = window.innerHeight;
+            var objHeight = dom.offsetHeight;
+            window.scrollTo(document.body.scrollWidth, offsetTop - clientHeight + objHeight + 20);
+          });
+        }
+      }
+      return isCurr;
     },
     respondId() {
       return "respond-" + (!this.replyComment ? 0 : this.replyComment.id);
@@ -208,12 +220,8 @@ export default {
     this.comment.author = author ? author : "";
     this.comment.authorUrl = authorUrl ? authorUrl : "";
     this.comment.email = email ? email : "";
-    this.avatar = avatar ? avatar : this.avatar;
-    // this.handleGetGithubUser();
+    this.avatar = avatar ? avatar : this.avatar
   },
-  // mounted() {
-  //   autosize(document.querySelector("textarea"));
-  // },
   methods: {
     handleSubmitClick() {
       if (isEmpty(this.comment.author)) {
@@ -425,6 +433,10 @@ export default {
       // 当replyId为0时则为回复博主
       this.globalData.replyId = 0;
       this.globalData.isReplyData = false;
+      // 取消回复后，将跳转至回复前的地方
+      var targetDom = this.$el.previousSibling;
+      var offsetTop = targetDom.offsetTop + this.$root.$el.offsetTop;
+      window.scrollTo(document.body.scrollWidth, offsetTop);
     },
     pullInfo() {
       let author = this.comment.author;
@@ -484,6 +496,17 @@ export default {
         `/${gravatarMd5}?s=256&d=` +
         this.options.comment_gravatar_default
       );
+    },
+    // 锚点跳转
+    viewJump(callback, targetDom) {
+      // dom为异步更新，因此务必放在nextTick内，否则无法获取到dom。
+      this.$nextTick(() => {
+        var dom = targetDom || this.$el;
+        // 若当前dom不在可视范围内，则将视角移动至dom下
+        if(!isInVisibleArea(dom, this.$root.$el, "bottom")) {
+          callback(dom);
+        }
+      })
     }
   }
 };
