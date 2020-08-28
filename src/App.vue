@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <Comment
-      :id="11"
+      :id="81"
       type="post"
       :configs="configs"
     />

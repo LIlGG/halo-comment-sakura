@@ -217,15 +217,15 @@ export default {
   methods: {
     handleSubmitClick() {
       if (isEmpty(this.comment.author)) {
-        this.$tips( "昵称不能为空", 5000);
+        this.$tips( "昵称不能为空", 5000, this);
         return;
       }
       if (isEmpty(this.comment.email)) {
-        this.$tips( "邮箱不能为空", 5000);
+        this.$tips( "邮箱不能为空", 5000, this);
         return;
       }
       if (isEmpty(this.comment.content)) {
-        this.$tips( "评论内容不能为空", 5000);
+        this.$tips( "评论内容不能为空", 5000, this);
         return;
       }
       // Submit the comment
@@ -259,13 +259,13 @@ export default {
         // 成功后直接新增新的评论node
         try {
           this.createdNewNode(createdComment)
-          this.$tips( "评论成功！", 5000);
+          this.$tips( "评论成功！", 5000, this);
         } catch {
-          this.$tips( "评论成功，刷新即可显示最新评论！", 5000);
+          this.$tips( "评论成功，刷新即可显示最新评论！", 5000, this);
         }
       } else {
         // Show tips
-        this.$tips( "您的评论已经投递至博主，等待博主审核！", 5000);
+        this.$tips( "您的评论已经投递至博主，等待博主审核！", 5000, this);
       }
     },
     createdNewNode(newComment) {
@@ -431,7 +431,7 @@ export default {
       if (author.length != 0 && isQQ(author)) {
         // 如果是QQ号，则拉取QQ头像
         this.pullQQInfo(()=> {
-          this.$tips( "拉取QQ信息失败！尝试拉取Gravatar", 2000);
+          this.$tips( "拉取QQ信息失败！尝试拉取Gravatar", 2000, this);
           // 如果QQ拉取失败，则尝试拉取Gravatar
           this.pullGravatarInfo();
         });
@@ -459,7 +459,7 @@ export default {
           if (!!data.code && data.code == 500) {
             errorQQCallback();
           }
-          _self.$tips( "拉取QQ头像成功！", 2000);
+          _self.$tips( "拉取QQ头像成功！", 2000, _self);
           _self.comment.author = data.nickname;
           _self.comment.email = data.email;
           _self.avatar = data.avatar;

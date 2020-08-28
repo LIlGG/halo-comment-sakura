@@ -15,10 +15,12 @@
 
 | 属性           | 说明                     | 默认值                    | 可选                       |
 | -------------- | ------------------------ | ------------------------- | -------------------------- |
-| autoLoad       | 是否自动加载评论列表     | true                      | `true` `false`             |
-| showUserAgent  | 是否显示评论者的 UA 信息 | true                      | `true` `false`             |
+| autoLoad       | 是否自动加载评论列表      | true                      | `true` `false`             |
+| showUserAgent  | 是否显示评论者的 UA 信息  | true                      | `true` `false`             |
 | gravatarSource | Gravatar 源地址          | `//cdn.v2ex.com/gravatar` | -                          |
 | loadingStyle   | 评论加载样式             | `default`                 | `default` `circle` `balls` |
+| promptType     | 提示组件类型             | `inline`                  | `inline` `external`        |
+| style          | 评论组件自定义样式       |                           |                             |
 
 配置方法：
 
