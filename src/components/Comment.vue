@@ -9,6 +9,7 @@
       >加载评论</a>
     </div>
     <comment-loading v-show="commentLoading" :configs="configs"/>
+    <comment-editor v-if="isReply" :targetId="id" :target="target" :options="options" :configs="mergedConfigs" class="bottom-comment"/>
     <ul class="commentwrap" v-if="comments.length >=1">
       <template v-for="(comment, index) in comments">
         <CommentNode
@@ -31,7 +32,6 @@
         @change="handlePaginationChange"
       />
     </div>
-    <comment-editor v-if="isReply" :targetId="id" :target="target" :options="options" :configs="mergedConfigs" class="bottom-comment"/>
   </div>
 </template>
 <script>
