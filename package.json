@@ -1,6 +1,6 @@
 {
   "name": "halo-comment-sakura",
-  "version": "1.3.1",
+  "version": "1.3.3",
   "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",

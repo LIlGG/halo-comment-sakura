@@ -1052,60 +1052,6 @@ div {
         }
     }
 
-    .emotion-item {
-        margin: 6px;
-        display: inline-block;
-        width: 32px;
-        height: 32px;
-        overflow: hidden;
-        border-radius: 4px;
-        margin-bottom: -8px;
-
-        .img {
-            -webkit-animation: im-emotion-step 1.08s steps(27) infinite;
-            animation: im-emotion-step 1.08s steps(27) infinite;
-            animation-duration: 1.08s;
-            animation-timing-function: steps(27);
-        }
-
-        @-webkit-keyframes im-emotion-step {
-            0% {
-                -webkit-transform: translateY(0);
-                transform: translateY(0)
-            }
-
-            to {
-                -webkit-transform: translateY(-100%);
-                transform: translateY(-100%)
-            }
-        }
-
-        @keyframes im-emotion-step {
-            0% {
-                -webkit-transform: translateY(0);
-                transform: translateY(0)
-            }
-
-            to {
-                -webkit-transform: translateY(-100%);
-                transform: translateY(-100%)
-            }
-        }
-
-        .img {
-            width: 32px;
-            height: 864px;
-            max-width: 32px;
-            background: top/32px no-repeat;
-            background-image: none;
-        }
-
-        @media (max-width:860px) {
-            transform: scale(.6);
-            margin-bottom: -10px
-        }
-    }
-
     /*--------------------------------------------------------------
     # Emoji List
     --------------------------------------------------------------*/
@@ -1211,6 +1157,63 @@ div {
         padding-right: 0 !important;
     }
 }
+
+.emotion-item {
+    margin: 6px;
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    overflow: hidden;
+    border-radius: 4px;
+    margin-bottom: -8px;
+
+    .img {
+        -webkit-animation: im-emotion-step 1.08s steps(27) infinite;
+        animation: im-emotion-step 1.08s steps(27) infinite;
+        -webkit-animation-duration: 1.08s;
+        animation-duration: 1.08s;
+        -webkit-animation-timing-function: steps(27);
+        animation-timing-function: steps(27);
+    }
+
+    .img {
+        width: 32px;
+        height: 864px;
+        max-width: 32px;
+        background: top/32px no-repeat;
+        background-image: none;
+    }
+
+    @-webkit-keyframes im-emotion-step {
+        0% {
+            -webkit-transform: translateY(0);
+            transform: translateY(0)
+        }
+
+        to {
+            -webkit-transform: translateY(-100%);
+            transform: translateY(-100%)
+        }
+    }
+
+    @keyframes im-emotion-step {
+        0% {
+            -webkit-transform: translateY(0);
+            transform: translateY(0)
+        }
+
+        to {
+            -webkit-transform: translateY(-100%);
+            transform: translateY(-100%)
+        }
+    }
+
+    @media (max-width:860px) {
+        transform: scale(.6);
+        margin-bottom: -10px
+    }
+}
+
 
 /*--------------------------------------------------------------
 # Popup
