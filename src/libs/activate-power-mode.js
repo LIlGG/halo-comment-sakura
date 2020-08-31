@@ -2,6 +2,8 @@
 import getCaretCoordinates from '@/libs/textarea-caret-position.js'
 
 var canvas = document.createElement('canvas');
+
+canvas.id = "activate-canvas"
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 canvas.style.cssText = 'position:fixed;top:0;left:0;pointer-events:none;z-index:999999';
@@ -10,7 +12,6 @@ window.addEventListener('resize', function () {
     canvas.height = window.innerHeight;
 });
 
-var init = false;
 var context;
 var particles = [];
 var particlePointer = 0;
@@ -76,10 +77,10 @@ function createParticle(x, y, color) {
 }
 
 export default function POWERMODE() {
-    if(!init) {
-        POWERMODE.dom.appendChild(canvas);
+    var dcm = document.activeElement.shadowRoot != null ? document.activeElement.shadowRoot.ownerDocument : document;
+    if(dcm.getElementById("activate-canvas") == null) {
+        dcm.body.appendChild(canvas);
         context = canvas.getContext('2d');
-        init = true;
     }
     { // spawn particles
         var caret = getCaret();
@@ -94,11 +95,11 @@ export default function POWERMODE() {
             var intensity = 1 + 2 * Math.random();
             var x = intensity * (Math.random() > 0.5 ? -1 : 1);
             var y = intensity * (Math.random() > 0.5 ? -1 : 1);
-            document.body.style.marginLeft = x + 'px';
-            document.body.style.marginTop = y + 'px';
+            dcm.body.style.marginLeft = x + 'px';
+            dcm.body.style.marginTop = y + 'px';
             setTimeout(function() {
-                document.body.style.marginLeft = '';
-                document.body.style.marginTop = '';
+                dcm.body.style.marginLeft = '';
+                dcm.body.style.marginTop = '';
             }, 75);
         }
     }

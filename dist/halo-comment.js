@@ -2852,12 +2852,12 @@ module.exports = function Type(x) {
 
 "use strict";
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"0aa3aafa-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/CommentEditor.vue?vue&type=template&id=79c34b85&
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"0aa3aafa-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/CommentEditor.vue?vue&type=template&id=59849271&
 var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return (_vm.isCurrReply)?_c('section',{ref:"editor",staticClass:"comment-editor",attrs:{"id":_vm.respondId,"role":"form"}},[(_vm.isReply)?_c('h3',{staticClass:"comment-reply-title",attrs:{"id":"reply-title"}},[_c('small',[_c('a',{staticClass:"cancel-comment-reply-link",attrs:{"rel":"nofollow","href":"javacript:void(0);"},on:{"click":_vm.cancelReply}},[_vm._v("Cancel Reply")])])]):_vm._e(),_c('form',{staticClass:"comment-form"},[(!_vm.previewMode)?_c('div',{staticClass:"comment-textarea"},[_c('textarea',{directives:[{name:"model",rawName:"v-model",value:(_vm.comment.content),expression:"comment.content"}],staticClass:"commentbody",attrs:{"required":"required","aria-required":"true","tabindex":"4","placeholder":_vm.options.comment_content_placeholder || '你是我一生只会遇见一次的惊喜 ...'},domProps:{"value":(_vm.comment.content)},on:{"input":function($event){if($event.target.composing){ return; }_vm.$set(_vm.comment, "content", $event.target.value)}}}),_c('label',{staticClass:"input-label"},[_vm._v(_vm._s(_vm.options.comment_content_placeholder || '你是我一生只会遇见一次的惊喜 ...'))])]):_c('div',{staticClass:"comment-preview markdown-body",domProps:{"innerHTML":_vm._s(_vm.renderedContent)}}),_c('div',{attrs:{"id":"upload-img-show"}}),_c('p',{staticClass:"no-select",attrs:{"id":"emotion-toggle"}},[_c('span',{on:{"click":_vm.handleToogleDialogEmoji}},[_vm._v(_vm._s(!_vm.emojiDialogVisible ? '戳我试试 OωO' : '嘿嘿嘿 ヾ(≧∇≦*)ゝ'))])]),_c('transition',{attrs:{"name":"emoji-fade"}},[_c('VEmojiPicker',{directives:[{name:"show",rawName:"v-show",value:(_vm.emojiDialogVisible),expression:"emojiDialogVisible"}],attrs:{"pack":_vm.emojiPack},on:{"select":_vm.handleSelectEmoji}})],1),_c('div',{staticClass:"author-info"},[_c('div',{staticClass:"commentator"},[_c('img',{staticClass:"avatar",attrs:{"src":_vm.avatar}}),_c('div',{staticClass:"socila-check",class:[_vm.checkType.back]},[_c('i',{class:[_vm.checkType.icon],attrs:{"aria-hidden":"true"}})])]),_c('PopupInput',{staticClass:"cmt-popup cmt-author",attrs:{"popupStyle":"margin-left: -115px;width: 230px;","popupText":"输入QQ号将自动拉取昵称和头像","inputType":"text","placeholder":"* 昵称","id":"author"},on:{"blurInput":_vm.pullInfo},model:{value:(_vm.comment.author),callback:function ($$v) {_vm.$set(_vm.comment, "author", $$v)},expression:"comment.author"}}),_c('PopupInput',{staticClass:"cmt-popup",attrs:{"popupStyle":"margin-left: -65px;width: 130px;","popupText":"你将收到回复通知","inputType":"text","placeholder":"* 电子邮件","id":"email"},on:{"blurInput":_vm.pullInfo},model:{value:(_vm.comment.email),callback:function ($$v) {_vm.$set(_vm.comment, "email", $$v)},expression:"comment.email"}}),_c('PopupInput',{staticClass:"cmt-popup",attrs:{"popupStyle":"margin-left: -55px;width: 110px;","popupText":"禁止小广告😀","inputType":"text","placeholder":"个人站点","id":"url"},model:{value:(_vm.comment.authorUrl),callback:function ($$v) {_vm.$set(_vm.comment, "authorUrl", $$v)},expression:"comment.authorUrl"}})],1),_c('ul',{staticClass:"comment-buttons"},[(_vm.comment.content)?_c('li',{staticClass:"middle",staticStyle:{"margin-right":"5px"}},[_c('a',{staticClass:"button-preview-edit",attrs:{"href":"javascript:void(0)","rel":"nofollow noopener"},on:{"click":_vm.handlePreviewContent}},[_vm._v(_vm._s(_vm.previewMode?'编辑':'预览'))])]):_vm._e(),_c('li',{staticClass:"middle"},[_c('a',{staticClass:"button-submit",attrs:{"href":"javascript:void(0)","tabindex":"5","rel":"nofollow noopener"},on:{"click":_vm.handleSubmitClick}},[_vm._v("提交")])])])],1)]):_vm._e()}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/CommentEditor.vue?vue&type=template&id=79c34b85&
+// CONCATENATED MODULE: ./src/components/CommentEditor.vue?vue&type=template&id=59849271&
 
 // EXTERNAL MODULE: external "Vue"
 var external_Vue_ = __webpack_require__("8bbf");
@@ -3432,6 +3432,7 @@ var textarea_caret_position_default = /*#__PURE__*/__webpack_require__.n(textare
 
 
 var canvas = document.createElement('canvas');
+canvas.id = "activate-canvas";
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 canvas.style.cssText = 'position:fixed;top:0;left:0;pointer-events:none;z-index:999999';
@@ -3439,7 +3440,6 @@ window.addEventListener('resize', function () {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 });
-var init = false;
 var context;
 var particles = [];
 var particlePointer = 0;
@@ -3513,10 +3513,11 @@ function createParticle(x, y, color) {
 }
 
 function POWERMODE() {
-  if (!init) {
-    POWERMODE.dom.appendChild(canvas);
+  var dcm = document.activeElement.shadowRoot != null ? document.activeElement.shadowRoot.ownerDocument : document;
+
+  if (dcm.getElementById("activate-canvas") == null) {
+    dcm.body.appendChild(canvas);
     context = canvas.getContext('2d');
-    init = true;
   }
 
   {
@@ -3535,11 +3536,11 @@ function POWERMODE() {
       var intensity = 1 + 2 * Math.random();
       var x = intensity * (Math.random() > 0.5 ? -1 : 1);
       var y = intensity * (Math.random() > 0.5 ? -1 : 1);
-      document.body.style.marginLeft = x + 'px';
-      document.body.style.marginTop = y + 'px';
+      dcm.body.style.marginLeft = x + 'px';
+      dcm.body.style.marginTop = y + 'px';
       setTimeout(function () {
-        document.body.style.marginLeft = '';
-        document.body.style.marginTop = '';
+        dcm.body.style.marginLeft = '';
+        dcm.body.style.marginTop = '';
       }, 75);
     }
   }
@@ -3808,7 +3809,6 @@ function loop() {
 
       POWERMODE.shake = false; // turn off shake
 
-      POWERMODE.dom = this.$root.$el;
       document.body.addEventListener('input', POWERMODE);
     });
   },

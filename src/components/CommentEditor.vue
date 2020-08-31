@@ -226,7 +226,6 @@ export default {
     this.$nextTick(() => {
       POWERMODE.colorful = true; // make power mode colorful
       POWERMODE.shake = false; // turn off shake
-      POWERMODE.dom = this.$root.$el;
       document.body.addEventListener('input', POWERMODE);
     })
   },
