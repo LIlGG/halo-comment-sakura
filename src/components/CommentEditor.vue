@@ -116,6 +116,7 @@ import commentApi from "../api/comment";
 import axios from "axios";
 import PopupInput from "./PopupInput";
 import globals from "@/utils/globals.js";
+import POWERMODE from '@/libs/activate-power-mode.js';
 
 export default {
   name: "CommentEditor",
@@ -220,7 +221,14 @@ export default {
     this.comment.author = author ? author : "";
     this.comment.authorUrl = authorUrl ? authorUrl : "";
     this.comment.email = email ? email : "";
-    this.avatar = avatar ? avatar : this.avatar
+    this.avatar = avatar ? avatar : this.avatar;
+
+    this.$nextTick(() => {
+      POWERMODE.colorful = true; // make power mode colorful
+      POWERMODE.shake = false; // turn off shake
+      POWERMODE.dom = this.$root.$el;
+      document.body.addEventListener('input', POWERMODE);
+    })
   },
   methods: {
     handleSubmitClick() {
