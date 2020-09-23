@@ -1,5 +1,5 @@
 <template>
-  <div class="halo-comment" id="halo-comment">
+  <div class="halo-comment serif" id="halo-comment">
     <div class="comment-load-button" v-if="!mergedConfigs.autoLoad && !loaded">
       <a
         class="button-load"
@@ -157,5 +157,6 @@ export default {
 <style lang="scss">
 $color: #898c7b;
 @import "../styles/global";
+@import url("https://fonts.googleapis.com/css?family=Noto+SerifMerriweather|Merriweather+Sans|Source+Code+Pro|Ubuntu:400,700|Noto+Serif+SC");
 @import "../styles/github-markdown";
 </style>

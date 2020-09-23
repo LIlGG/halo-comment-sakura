@@ -607,6 +607,18 @@ div {
                 text-decoration: none;
             }
         }
+
+        .markdown-body {
+            .comment_inline_img {
+                display: inline-block;
+                height: 150px;
+                margin-right: 3px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 3px;
+                cursor: pointer;
+            }
+        }
     }
 
     /*--------------------------------------------------------------
@@ -1292,4 +1304,8 @@ div {
         z-index: 10000;
         margin-top: -4px
     }
+}
+
+.serif {
+	font-family: 'Noto Serif SC','Source Han Serif SC','Source Han Serif','source-han-serif-sc','PT Serif','SongTi SC','MicroSoft Yahei',Georgia,serif
 }

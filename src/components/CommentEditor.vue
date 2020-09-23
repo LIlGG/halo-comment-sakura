@@ -4,8 +4,9 @@
       <small>
         <a
           rel="nofollow"
-          href="javacript:void(0);"
+          href="javascript:void(0);"
           class="cancel-comment-reply-link"
+          onclick="return false;"
           @click="cancelReply"
         >Cancel Reply</a>
       </small>
