@@ -8,7 +8,7 @@
         @click="loadComments"
       >加载评论</a>
     </div>
-    <comment-loading v-show="commentLoading" :configs="configs"/>
+    <comment-loading v-show="commentLoading" :configs="mergedConfigs"/>
     <comment-editor v-if="isReply" :targetId="id" :target="target" :options="options" :configs="mergedConfigs" class="bottom-comment"/>
     <ul class="commentwrap" v-if="comments.length >=1">
       <template v-for="(comment, index) in comments">
@@ -36,6 +36,7 @@
 </template>
 <script>
 import "./index";
+import defaultConfig from "@/config/defaultconfig";
 import commentApi from "../api/comment";
 import optionApi from "../api/option";
 import globals from '@/utils/globals.js';
@@ -70,13 +71,7 @@ export default {
     configs: {
       type: Object,
       required: false,
-      default: () => ({
-        // auto load comment,default true
-        autoLoad: true,
-        showUserAgent: true,
-        gravatarSource: "//cdn.v2ex.com/gravatar",
-        loadingStyle: "default"
-      })
+      default: () => (defaultConfig)
     }
   },
   data() {
@@ -105,14 +100,10 @@ export default {
       return `${this.type}s`;
     },
     mergedConfigs() {
+      var jsonConfig = JSON.parse(this.configs);
       return Object.assign(
-        {
-          autoLoad: true,
-          showUserAgent: true,
-          gravatarSource: "//cdn.v2ex.com/gravatar",
-          loadingStyle: "default"
-        },
-        this.configs
+        defaultConfig,
+        jsonConfig
       );
     },
     isReply() {
