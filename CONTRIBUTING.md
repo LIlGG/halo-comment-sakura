@@ -39,7 +39,7 @@ git push origin {BRANCH_NAME}
 #### 7. 更新主仓库代码到自己的仓库
 
 ```bash
-git remote add upstream git@github.com:halo-dev/halo.git
+git remote add upstream git@github.com:LIlGG/halo-comment-sakura.git
 
 git pull upstream master
 
