@@ -1,7 +1,7 @@
 <h1 align="center"><a href="https://github.com/LIlGG/halo-comment-sakura" target="_blank">halo-comment-sakura</a></h1>
 <p align="center">
   <a href="https://github.com/LIlGG/halo-theme-sakura"><img alt="Build Status" src="https://img.shields.io/badge/build-positive-brightgreen?style=for-the-badge"></a>
-  <a href="https://github.com/prettier/prettier"><img alt="Code Style: Prettier" src="https://img.shields.io/badge/release-1.3.4-blue?style=for-the-badge"></a>
+  <a href="https://github.com/prettier/prettier"><img alt="Code Style: Prettier" src="https://img.shields.io/badge/release-1.3.5-blue?style=for-the-badge"></a>
   <a href="./LICENSE"><img alt="LICENSE MIT" src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge"></a>
 </p>
 
@@ -12,7 +12,7 @@
 
 1. 进入后台 -> 系统 -> 博客设置 -> 评论设置
 
-2. 将 `评论模块 JS` 修改为：`https://cdn.jsdelivr.net/gh/LIlGG/halo-comment-sakura@v1.3.4/dist/halo-comment.min.js`
+2. 将 `评论模块 JS` 修改为：`https://cdn.jsdelivr.net/gh/LIlGG/halo-comment-sakura@v1.3.5/dist/halo-comment.min.js`
 
 ### 自定义配置
 
@@ -69,7 +69,7 @@ configs='${configs}'
 <#macro comment target,type>
     <#if !post.disallowComment!false>
         <script src="//cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.min.js"></script>
-        <script src="${options.comment_internal_plugin_js!'//cdn.jsdelivr.net/gh/LIlGG/halo-comment-sakura@v1.3.4/dist/halo-comment.min.js'}"></script>
+        <script src="${options.comment_internal_plugin_js!'//cdn.jsdelivr.net/gh/LIlGG/halo-comment-sakura@v1.3.5/dist/halo-comment.min.js'}"></script>
         <#assign
           configs = '{
             "autoLoad": true,
