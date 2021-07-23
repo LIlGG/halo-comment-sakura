@@ -197,8 +197,10 @@ export default {
   },
   computed: {
     avatar() {
+      const gravatarSource = this.options.gravatar_source || this.configs.gravatarSource;
+      
       return (
-        this.configs.gravatarSource +
+        gravatarSource +
         `/${this.comment.gravatarMd5}?s=256&d=` +
         this.options.comment_gravatar_default
       );

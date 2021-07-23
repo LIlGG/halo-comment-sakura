@@ -100,28 +100,28 @@ export function getUrlKey(name) {
 }
 
 function trimTailBr(str) {
-    return str.replace(/((\s|&nbsp;)*\r?\n)+$/g,'');
+    return str.replace(/((\s|&nbsp;)*\r?\n)+$/g, '');
 }
 
 function limitBr(str) {
-    return str.replace(/((\s|&nbsp;)*\r?\n){3,}/g,"\r\n\r\n");
+    return str.replace(/((\s|&nbsp;)*\r?\n){3,}/g, "\r\n\r\n");
 }
 
 function trimHeadBr(str) {
-    return str.replace(/^((\s|&nbsp;)*\r?\n)+/g,'');
+    return str.replace(/^((\s|&nbsp;)*\r?\n)+/g, '');
 }
 
 export function return2Br(str) {
     str = trimHeadBr(str);
     str = trimTailBr(str);
     str = limitBr(str);
-    return str.replace(/\r?\n/g,"<br />");
+    return str.replace(/\r?\n/g, "<br />");
 }
 
 
 //判断一个元素是否在可视区域内
-export function isInVisibleArea(elem, root){
-    if(!elem || !elem.getBoundingClientRect) return false;
+export function isInVisibleArea(elem, root) {
+    if (!elem || !elem.getBoundingClientRect) return false;
 
     var clientHeight = window.innerHeight;
     var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
@@ -129,9 +129,24 @@ export function isInVisibleArea(elem, root){
     var rootOffsetTop = root.offsetTop;
     var offsetTop = elem.offsetTop + rootOffsetTop;
     var objHeight = elem.offsetHeight;
-    if((offsetTop + objHeight) < (scrollTop + clientHeight) && (offsetTop + objHeight) > scrollTop) {
+    if ((offsetTop + objHeight) < (scrollTop + clientHeight) && (offsetTop + objHeight) > scrollTop) {
         return true;
     }
 
     return false;
+}
+
+/**
+ * 移除 JSON 内值为空的数据
+ * @param {*} obj json 对象
+ */
+export function removeJsonEmpty(obj) {
+    for (let k in obj) {
+        let v = obj[k];
+        if (v === '') {
+            delete obj[k];
+        } else if (v.constructor == Object) {
+            removeJsonEmpty(v);
+        }
+    }
 }

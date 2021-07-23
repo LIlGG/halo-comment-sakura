@@ -1,5 +1,6 @@
 <template>
   <div class="halo-comment serif" id="halo-comment">
+    <comment-editor v-if="isReply" :targetId="id" :target="target" :options="options" :configs="mergedConfigs" class="bottom-comment"/>
     <div class="comment-load-button" v-if="!mergedConfigs.autoLoad && !loaded">
       <a
         class="button-load"
@@ -9,7 +10,6 @@
       >加载评论</a>
     </div>
     <comment-loading v-show="commentLoading" :configs="mergedConfigs"/>
-    <comment-editor v-if="isReply" :targetId="id" :target="target" :options="options" :configs="mergedConfigs" class="bottom-comment"/>
     <ul class="commentwrap" v-if="comments.length >=1">
       <template v-for="(comment, index) in comments">
         <CommentNode
@@ -23,8 +23,8 @@
         />
       </template>
     </ul>
-    <div v-if="loaded && !commentLoading && comments.length<=0" class="comment-empty">暂无评论</div>
-    <div v-if="pagination.pages>1" class="comment-page">
+    <div v-if="loaded && !commentLoading && comments.length<=0" class="comment-empty">{{mergedConfigs.notComment || '暂无评论'}}</div>
+    <div v-if="pagination.pages > 1" class="comment-page">
       <pagination
         :page="pagination.page"
         :size="pagination.size"
@@ -42,7 +42,8 @@ import optionApi from "../api/option";
 import globals from '@/utils/globals.js';
 import VueLazyload from 'vue-lazyload'
 import Tips from '@/plugins/Tips';
-import Vue from 'vue'
+import { removeJsonEmpty } from "@/utils/util";
+import Vue from 'vue';
 
 Vue.use( VueLazyload, {
   error: 'https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.1/img/Sakura/images/Transparent_Akkarin.th.jpg',
@@ -100,7 +101,17 @@ export default {
       return `${this.type}s`;
     },
     mergedConfigs() {
-      var jsonConfig = JSON.parse(this.configs);
+      var jsonConfig;
+      if (typeof(this.configs) === "string") {
+        jsonConfig = JSON.parse(this.configs);
+      } else if (typeof(this.configs) === "object") {
+        jsonConfig = this.configs;
+      } else {
+        throw new TypeError("参数类型错误");
+      }
+      // 移除值为空的
+      removeJsonEmpty(jsonConfig);
+      
       return Object.assign(
         defaultConfig,
         jsonConfig

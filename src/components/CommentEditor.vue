@@ -17,11 +17,11 @@
           required="required"
           aria-required="true"
           tabindex="4"
-          :placeholder="options.comment_content_placeholder || '你是我一生只会遇见一次的惊喜 ...'"
+          :placeholder="configs.aWord || '你是我一生只会遇见一次的惊喜 ...'"
           v-model="comment.content"
           class="commentbody"
         ></textarea>
-        <label class="input-label">{{options.comment_content_placeholder || '你是我一生只会遇见一次的惊喜 ...'}}</label>
+        <label class="input-label">{{configs.aWord || '你是我一生只会遇见一次的惊喜 ...'}}</label>
       </div>
       <div class="comment-preview markdown-body" v-else v-html="renderedContent"></div>
       <!-- 上传图片预览 -->
@@ -43,8 +43,8 @@
         </div>
         <PopupInput
           class="cmt-popup cmt-author"
-          popupStyle="margin-left: -115px;width: 230px;"
-          popupText="输入QQ号将自动拉取昵称和头像"
+          popupStyle="margin-left: -115px"
+          :popupText="configs.authorPopup || '输入QQ号将自动拉取昵称和头像'"
           inputType="text"
           placeholder="* 昵称"
           id="author"
@@ -53,8 +53,8 @@
         />
         <PopupInput
           class="cmt-popup"
-          popupStyle="margin-left: -65px;width: 130px;"
-          popupText="你将收到回复通知"
+          popupStyle="margin-left: -65px;"
+          :popupText="configs.emailPopup || '你将收到回复通知'"
           inputType="text"
           placeholder="* 电子邮件"
           id="email"
@@ -63,8 +63,8 @@
         />
         <PopupInput
           class="cmt-popup"
-          popupStyle="margin-left: -55px;width: 110px;"
-          popupText="禁止小广告😀"
+          popupStyle="margin-left: -55px;"
+          :popupText="configs.urlPopup || '禁止小广告😀'"
           inputType="text"
           placeholder="个人站点"
           id="url"
@@ -112,7 +112,7 @@ import VEmojiPicker from "./EmojiPicker/VEmojiPicker";
 import emojiData from "./EmojiPicker/data/emojis2.js";
 import { renderedEmojiHtml } from "@/utils/emojiutil";
 import { isEmpty, isObject, getUrlKey, return2Br, isQQ } from "@/utils/util";
-import { validEmail, queryStringify, isInVisibleArea } from "@/utils/util";
+import { queryStringify, isInVisibleArea } from "@/utils/util";
 import commentApi from "../api/comment";
 import axios from "axios";
 import PopupInput from "./PopupInput";
@@ -493,17 +493,11 @@ export default {
         });
     },
     pullGravatarInfo() {
-      if (!this.comment.email || !validEmail(this.comment.email)) {
-        this.avatar = (
-          this.configs.gravatarSource +
-          "?d=" +
-          this.options.comment_gravatar_default
-        );
-      }
       const gravatarMd5 = md5(this.comment.email);
+      const gravatarSource = this.options.gravatar_source || this.configs.gravatarSource;
 
       this.avatar = (
-        this.configs.gravatarSource +
+        gravatarSource +
         `/${gravatarMd5}?s=256&d=` +
         this.options.comment_gravatar_default
       );

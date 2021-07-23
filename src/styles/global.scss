@@ -1236,12 +1236,12 @@ div {
     cursor: pointer;
 
     .popuptext {
-        width: 160px;
+        width: auto; 
+        padding: 8px 10px;
         background-color: #555;
         color: #fff;
         text-align: center;
         border-radius: 6px;
-        padding: 8px 3px;
         position: absolute;
         z-index: 1;
         bottom: 110%;
