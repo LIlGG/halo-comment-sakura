@@ -73,7 +73,7 @@ npm run build
 npm run lint
 ```
 
-开发调试建议：如果实在需要在打包后的评论组件中使用 `console` 及 `debuger`，那么可以在开发时临时将 `.eslintrc.js` 文件中的 `rules` 改为如下设置以允许使用：
+开发调试建议：如果实在需要在打包后的评论组件中使用 `console` 及 `debugger`，那么可以在开发时临时将 `.eslintrc.js` 文件中的 `rules` 改为如下设置以允许使用：
 ```js
 rules: {
     'no-console': 0,
@@ -81,4 +81,4 @@ rules: {
 },
 ```
 
-但在提交 PR 时，务必保证禁用 `console` 及 `debuger`
+但在提交 PR 时，务必保证禁用 `console` 及 `debugger`

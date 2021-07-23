@@ -361,17 +361,20 @@ export default {
       this.emojiDialogVisible = !this.emojiDialogVisible;
     },
     handleSelectEmoji(args) {
+      let emoji, type;
+      let emojiComment;
+      
       if (args.length == 0) {
         return;
       }
-      let emoji, type;
+      
       if (args.length > 0) {
         emoji = args[0];
       }
       if (args.length > 1) {
         type = args[1];
       }
-      let emojiComment;
+      
       if (!type) {
         emojiComment = emoji.name;
       } else {
