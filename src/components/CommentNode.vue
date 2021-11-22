@@ -146,37 +146,37 @@ export default {
         {
           name: "小萌新~",
           icon:
-            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/Sakura/images/level/level_0.svg"
+            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/Sakura/images/level/level_0.svg"
         },
         {
           name: "小魔仙",
           icon:
-            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/Sakura/images/level/level_1.svg"
+            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/Sakura/images/level/level_1.svg"
         },
         {
           name: "初露头角",
           icon:
-            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/Sakura/images/level/level_2.svg"
+            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/Sakura/images/level/level_2.svg"
         },
         {
           name: "大水笔",
           icon:
-            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/Sakura/images/level/level_3.svg"
+            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/Sakura/images/level/level_3.svg"
         },
         {
           name: "后宫团",
           icon:
-            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/Sakura/images/level/level_4.svg"
+            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/Sakura/images/level/level_4.svg"
         },
         {
           name: "有豪宅",
           icon:
-            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/Sakura/images/level/level_5.svg"
+            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/Sakura/images/level/level_5.svg"
         },
         {
           name: "德国骨科",
           icon:
-            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/Sakura/images/level/level_6.svg"
+            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/Sakura/images/level/level_6.svg"
         }
       ],
       globalData: globals
@@ -232,7 +232,7 @@ export default {
       var result = parser.getResult();
 
       var browserImg =
-        "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/Sakura/images/ua/svg/" +
+        "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/Sakura/images/ua/svg/" +
         result.browser.name.toLowerCase() +
         ".svg";
       var uaImg = "";
@@ -244,25 +244,25 @@ export default {
             case "8":
             case "10":
               uaImg =
-                "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/Sakura/images/ua/svg/windows_win" +
+                "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/Sakura/images/ua/svg/windows_win" +
                 result.os.version +
                 ".svg";
               break;
             case "":
               uaImg =
-                "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/Sakura/images/ua/svg/windows_" +
+                "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/Sakura/images/ua/svg/windows_" +
                 result.os.version +
                 ".svg";
               break;
             default:
               uaImg =
-                "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/Sakura/images/ua/svg/windows.svg";
+                "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/Sakura/images/ua/svg/windows.svg";
               break;
           }
           break;
         default:
           uaImg =
-            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/Sakura/images/ua/svg/" +
+            "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/Sakura/images/ua/svg/" +
             result.os.name.replace(/\s+/g, "").toLowerCase() +
             ".svg";
           break;

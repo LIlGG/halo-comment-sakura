@@ -47,7 +47,7 @@ import Vue from 'vue';
 
 Vue.use( VueLazyload, {
   error: 'https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.1/img/Sakura/images/Transparent_Akkarin.th.jpg',
-  loading: 'https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/svg/loader/trans.ajax-spinner-preloader.svg',
+  loading: 'https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/svg/loader/trans.ajax-spinner-preloader.svg',
   attempt: 1
 })
 

@@ -14,7 +14,7 @@ export default {
         url: {
             type: String,
             required: false,
-            default: "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.0.0/img/Sakura/images/smilies/"
+            default: "https://cdn.jsdelivr.net/gh/LIlGG/cdn@1.1.3/img/Sakura/images/smilies/"
         }
     },
     computed: {
