@@ -8,7 +8,8 @@ export function renderedEmojiHtml(html) {
         let emojiName = emotions[i].getAttribute("data-icon");
         
         for(let j = 0; j < emojiData["default"].length; j++) {
-            if(emojiData["default"][j]["name"] === emojiName) {
+            const emoji = emojiData["default"][j];
+            if(emoji.style && emoji["name"] === emojiName) {
                 let emoji = emojiData["default"][j];
                 let img = emotions[i].getElementsByClassName("img")[0];
                        
