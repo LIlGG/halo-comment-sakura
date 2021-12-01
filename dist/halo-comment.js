@@ -189,52 +189,6 @@
 
 /***/ }),
 
-/***/ "00ee":
-/***/ (function(module, exports, __webpack_require__) {
-
-var wellKnownSymbol = __webpack_require__("b622");
-
-var TO_STRING_TAG = wellKnownSymbol('toStringTag');
-var test = {};
-
-test[TO_STRING_TAG] = 'z';
-
-module.exports = String(test) === '[object z]';
-
-
-/***/ }),
-
-/***/ "0366":
-/***/ (function(module, exports, __webpack_require__) {
-
-var aFunction = __webpack_require__("1c0b");
-
-// optional / simple context binding
-module.exports = function (fn, that, length) {
-  aFunction(fn);
-  if (that === undefined) return fn;
-  switch (length) {
-    case 0: return function () {
-      return fn.call(that);
-    };
-    case 1: return function (a) {
-      return fn.call(that, a);
-    };
-    case 2: return function (a, b) {
-      return fn.call(that, a, b);
-    };
-    case 3: return function (a, b, c) {
-      return fn.call(that, a, b, c);
-    };
-  }
-  return function (/* ...args */) {
-    return fn.apply(that, arguments);
-  };
-};
-
-
-/***/ }),
-
 /***/ "044b":
 /***/ (function(module, exports) {
 
@@ -259,35 +213,6 @@ function isBuffer (obj) {
 function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
-
-
-/***/ }),
-
-/***/ "057f":
-/***/ (function(module, exports, __webpack_require__) {
-
-var toIndexedObject = __webpack_require__("fc6a");
-var nativeGetOwnPropertyNames = __webpack_require__("241c").f;
-
-var toString = {}.toString;
-
-var windowNames = typeof window == 'object' && window && Object.getOwnPropertyNames
-  ? Object.getOwnPropertyNames(window) : [];
-
-var getWindowNames = function (it) {
-  try {
-    return nativeGetOwnPropertyNames(it);
-  } catch (error) {
-    return windowNames.slice();
-  }
-};
-
-// fallback for IE11 buggy Object.getOwnPropertyNames with iframe and window
-module.exports.f = function getOwnPropertyNames(it) {
-  return windowNames && toString.call(it) == '[object Window]'
-    ? getWindowNames(it)
-    : nativeGetOwnPropertyNames(toIndexedObject(it));
-};
 
 
 /***/ }),
@@ -647,148 +572,6 @@ module.exports = Function.prototype.bind || implementation;
 
 /***/ }),
 
-/***/ "1276":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var fixRegExpWellKnownSymbolLogic = __webpack_require__("d784");
-var isRegExp = __webpack_require__("44e7");
-var anObject = __webpack_require__("825a");
-var requireObjectCoercible = __webpack_require__("1d80");
-var speciesConstructor = __webpack_require__("4840");
-var advanceStringIndex = __webpack_require__("8aa5");
-var toLength = __webpack_require__("50c4");
-var callRegExpExec = __webpack_require__("14c3");
-var regexpExec = __webpack_require__("9263");
-var fails = __webpack_require__("d039");
-
-var arrayPush = [].push;
-var min = Math.min;
-var MAX_UINT32 = 0xFFFFFFFF;
-
-// babel-minify transpiles RegExp('x', 'y') -> /x/y and it causes SyntaxError
-var SUPPORTS_Y = !fails(function () { return !RegExp(MAX_UINT32, 'y'); });
-
-// @@split logic
-fixRegExpWellKnownSymbolLogic('split', 2, function (SPLIT, nativeSplit, maybeCallNative) {
-  var internalSplit;
-  if (
-    'abbc'.split(/(b)*/)[1] == 'c' ||
-    'test'.split(/(?:)/, -1).length != 4 ||
-    'ab'.split(/(?:ab)*/).length != 2 ||
-    '.'.split(/(.?)(.?)/).length != 4 ||
-    '.'.split(/()()/).length > 1 ||
-    ''.split(/.?/).length
-  ) {
-    // based on es5-shim implementation, need to rework it
-    internalSplit = function (separator, limit) {
-      var string = String(requireObjectCoercible(this));
-      var lim = limit === undefined ? MAX_UINT32 : limit >>> 0;
-      if (lim === 0) return [];
-      if (separator === undefined) return [string];
-      // If `separator` is not a regex, use native split
-      if (!isRegExp(separator)) {
-        return nativeSplit.call(string, separator, lim);
-      }
-      var output = [];
-      var flags = (separator.ignoreCase ? 'i' : '') +
-                  (separator.multiline ? 'm' : '') +
-                  (separator.unicode ? 'u' : '') +
-                  (separator.sticky ? 'y' : '');
-      var lastLastIndex = 0;
-      // Make `global` and avoid `lastIndex` issues by working with a copy
-      var separatorCopy = new RegExp(separator.source, flags + 'g');
-      var match, lastIndex, lastLength;
-      while (match = regexpExec.call(separatorCopy, string)) {
-        lastIndex = separatorCopy.lastIndex;
-        if (lastIndex > lastLastIndex) {
-          output.push(string.slice(lastLastIndex, match.index));
-          if (match.length > 1 && match.index < string.length) arrayPush.apply(output, match.slice(1));
-          lastLength = match[0].length;
-          lastLastIndex = lastIndex;
-          if (output.length >= lim) break;
-        }
-        if (separatorCopy.lastIndex === match.index) separatorCopy.lastIndex++; // Avoid an infinite loop
-      }
-      if (lastLastIndex === string.length) {
-        if (lastLength || !separatorCopy.test('')) output.push('');
-      } else output.push(string.slice(lastLastIndex));
-      return output.length > lim ? output.slice(0, lim) : output;
-    };
-  // Chakra, V8
-  } else if ('0'.split(undefined, 0).length) {
-    internalSplit = function (separator, limit) {
-      return separator === undefined && limit === 0 ? [] : nativeSplit.call(this, separator, limit);
-    };
-  } else internalSplit = nativeSplit;
-
-  return [
-    // `String.prototype.split` method
-    // https://tc39.github.io/ecma262/#sec-string.prototype.split
-    function split(separator, limit) {
-      var O = requireObjectCoercible(this);
-      var splitter = separator == undefined ? undefined : separator[SPLIT];
-      return splitter !== undefined
-        ? splitter.call(separator, O, limit)
-        : internalSplit.call(String(O), separator, limit);
-    },
-    // `RegExp.prototype[@@split]` method
-    // https://tc39.github.io/ecma262/#sec-regexp.prototype-@@split
-    //
-    // NOTE: This cannot be properly polyfilled in engines that don't support
-    // the 'y' flag.
-    function (regexp, limit) {
-      var res = maybeCallNative(internalSplit, regexp, this, limit, internalSplit !== nativeSplit);
-      if (res.done) return res.value;
-
-      var rx = anObject(regexp);
-      var S = String(this);
-      var C = speciesConstructor(rx, RegExp);
-
-      var unicodeMatching = rx.unicode;
-      var flags = (rx.ignoreCase ? 'i' : '') +
-                  (rx.multiline ? 'm' : '') +
-                  (rx.unicode ? 'u' : '') +
-                  (SUPPORTS_Y ? 'y' : 'g');
-
-      // ^(? + rx + ) is needed, in combination with some S slicing, to
-      // simulate the 'y' flag.
-      var splitter = new C(SUPPORTS_Y ? rx : '^(?:' + rx.source + ')', flags);
-      var lim = limit === undefined ? MAX_UINT32 : limit >>> 0;
-      if (lim === 0) return [];
-      if (S.length === 0) return callRegExpExec(splitter, S) === null ? [S] : [];
-      var p = 0;
-      var q = 0;
-      var A = [];
-      while (q < S.length) {
-        splitter.lastIndex = SUPPORTS_Y ? q : 0;
-        var z = callRegExpExec(splitter, SUPPORTS_Y ? S : S.slice(q));
-        var e;
-        if (
-          z === null ||
-          (e = min(toLength(splitter.lastIndex + (SUPPORTS_Y ? 0 : q)), S.length)) === p
-        ) {
-          q = advanceStringIndex(S, q, unicodeMatching);
-        } else {
-          A.push(S.slice(p, q));
-          if (A.length === lim) return A;
-          for (var i = 1; i <= z.length - 1; i++) {
-            A.push(z[i]);
-            if (A.length === lim) return A;
-          }
-          q = p = e;
-        }
-      }
-      A.push(S.slice(p));
-      return A;
-    }
-  ];
-}, !SUPPORTS_Y);
-
-
-/***/ }),
-
 /***/ "14c3":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -814,28 +597,6 @@ module.exports = function (R, S) {
   return regexpExec.call(R, S);
 };
 
-
-
-/***/ }),
-
-/***/ "159b":
-/***/ (function(module, exports, __webpack_require__) {
-
-var global = __webpack_require__("da84");
-var DOMIterables = __webpack_require__("fdbc");
-var forEach = __webpack_require__("17c2");
-var createNonEnumerableProperty = __webpack_require__("9112");
-
-for (var COLLECTION_NAME in DOMIterables) {
-  var Collection = global[COLLECTION_NAME];
-  var CollectionPrototype = Collection && Collection.prototype;
-  // some Chrome versions have non-configurable methods on DOMTokenList
-  if (CollectionPrototype && CollectionPrototype.forEach !== forEach) try {
-    createNonEnumerableProperty(CollectionPrototype, 'forEach', forEach);
-  } catch (error) {
-    CollectionPrototype.forEach = forEach;
-  }
-}
 
 
 /***/ }),
@@ -890,45 +651,12 @@ module.exports = function hasSymbols() {
 
 /***/ }),
 
-/***/ "17c2":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var $forEach = __webpack_require__("b727").forEach;
-var arrayMethodIsStrict = __webpack_require__("a640");
-var arrayMethodUsesToLength = __webpack_require__("ae40");
-
-var STRICT_METHOD = arrayMethodIsStrict('forEach');
-var USES_TO_LENGTH = arrayMethodUsesToLength('forEach');
-
-// `Array.prototype.forEach` method implementation
-// https://tc39.github.io/ecma262/#sec-array.prototype.foreach
-module.exports = (!STRICT_METHOD || !USES_TO_LENGTH) ? function forEach(callbackfn /* , thisArg */) {
-  return $forEach(this, callbackfn, arguments.length > 1 ? arguments[1] : undefined);
-} : [].forEach;
-
-
-/***/ }),
-
 /***/ "1be4":
 /***/ (function(module, exports, __webpack_require__) {
 
 var getBuiltIn = __webpack_require__("d066");
 
 module.exports = getBuiltIn('document', 'documentElement');
-
-
-/***/ }),
-
-/***/ "1c0b":
-/***/ (function(module, exports) {
-
-module.exports = function (it) {
-  if (typeof it != 'function') {
-    throw TypeError(String(it) + ' is not a function');
-  } return it;
-};
 
 
 /***/ }),
@@ -960,32 +688,6 @@ module.exports = function bind(fn, thisArg) {
 module.exports = function (it) {
   if (it == undefined) throw TypeError("Can't call method on " + it);
   return it;
-};
-
-
-/***/ }),
-
-/***/ "1dde":
-/***/ (function(module, exports, __webpack_require__) {
-
-var fails = __webpack_require__("d039");
-var wellKnownSymbol = __webpack_require__("b622");
-var V8_VERSION = __webpack_require__("2d00");
-
-var SPECIES = wellKnownSymbol('species');
-
-module.exports = function (METHOD_NAME) {
-  // We can't use this feature detection in V8 since it causes
-  // deoptimization and serious performance degradation
-  // https://github.com/zloirock/core-js/issues/677
-  return V8_VERSION >= 51 || !fails(function () {
-    var array = [];
-    var constructor = array.constructor = {};
-    constructor[SPECIES] = function () {
-      return { foo: 1 };
-    };
-    return array[METHOD_NAME](Boolean).foo !== 1;
-  });
 };
 
 
@@ -1457,18 +1159,18 @@ function normalizeComponent (
 var external_Vue_ = __webpack_require__("8bbf");
 var external_Vue_default = /*#__PURE__*/__webpack_require__.n(external_Vue_);
 
-// EXTERNAL MODULE: ./src/components/CommentEditor.vue + 42 modules
+// EXTERNAL MODULE: ./src/components/CommentEditor.vue + 40 modules
 var CommentEditor = __webpack_require__("3f17");
 
 // EXTERNAL MODULE: ./src/components/CommentNode.vue + 4 modules
 var CommentNode = __webpack_require__("f9af");
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"bbcda878-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/CommentLoading.vue?vue&type=template&id=1f98d647&
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5465617b-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/CommentLoading.vue?vue&type=template&id=278b6f20&
 var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"comment-loader-container"},[(_vm.configs.loadingStyle==='default')?_c('div',{staticClass:"comment-loader-default"},[_c('span'),_c('span'),_c('span'),_c('span')]):(_vm.configs.loadingStyle==='circle')?_c('div',{staticClass:"comment-loader-circle"}):(_vm.configs.loadingStyle==='balls')?_c('div',{staticClass:"comment-loader-balls"},[_c('div'),_c('div'),_c('div')]):_vm._e()])}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/CommentLoading.vue?vue&type=template&id=1f98d647&
+// CONCATENATED MODULE: ./src/components/CommentLoading.vue?vue&type=template&id=278b6f20&
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/CommentLoading.vue?vue&type=script&lang=js&
 //
@@ -1530,12 +1232,12 @@ var component = Object(componentNormalizer["a" /* default */])(
 )
 
 /* harmony default export */ var CommentLoading = (component.exports);
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"bbcda878-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/Pagination.vue?vue&type=template&id=67f9991c&
-var Paginationvue_type_template_id_67f9991c_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"page"},[_c('li',{staticClass:"page-item",class:{ disabled: !_vm.hasPrev }},[_c('button',{staticClass:"prev-button",attrs:{"tabindex":"-1"},on:{"click":_vm.handlePrevClick}},[_vm._v("上一页")])]),(_vm.firstPage != null)?_c('li',{staticClass:"page-item",class:{ active: _vm.page === _vm.firstPage}},[_c('button',{class:{ active: _vm.page === _vm.firstPage},on:{"click":function($event){return _vm.handlePageItemClick(_vm.firstPage)}}},[_vm._v(_vm._s(_vm.firstPage + 1))])]):_vm._e(),_c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.hasMorePrev),expression:"hasMorePrev"}],staticClass:"page-item"},[_c('span',[_vm._v("...")])]),_vm._l((_vm.middlePages),function(middlePage){return _c('li',{key:middlePage,staticClass:"page-item",class:{ active: middlePage === _vm.page }},[_c('button',{class:{ active: middlePage === _vm.page },on:{"click":function($event){return _vm.handlePageItemClick(middlePage)}}},[_vm._v(" "+_vm._s(middlePage + 1)+" ")])])}),_c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.hasMoreNext),expression:"hasMoreNext"}],staticClass:"page-item"},[_c('span',[_vm._v("...")])]),(_vm.lastPage)?_c('li',{staticClass:"page-item",class:{ active: _vm.page === _vm.lastPage}},[_c('button',{class:{ active: _vm.page === _vm.lastPage},on:{"click":function($event){return _vm.handlePageItemClick(_vm.lastPage)}}},[_vm._v(" "+_vm._s(_vm.lastPage + 1)+" ")])]):_vm._e(),_c('li',{staticClass:"page-item",class:{ disabled: !_vm.hasNext }},[_c('button',{staticClass:"next-button",on:{"click":_vm.handleNextClick}},[_vm._v("下一页")])])],2)}
-var Paginationvue_type_template_id_67f9991c_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5465617b-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/Pagination.vue?vue&type=template&id=5c7eb618&
+var Paginationvue_type_template_id_5c7eb618_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('ul',{staticClass:"page"},[_c('li',{staticClass:"page-item",class:{ disabled: !_vm.hasPrev }},[_c('button',{staticClass:"prev-button",attrs:{"tabindex":"-1"},on:{"click":_vm.handlePrevClick}},[_vm._v("上一页")])]),(_vm.firstPage != null)?_c('li',{staticClass:"page-item",class:{ active: _vm.page === _vm.firstPage}},[_c('button',{class:{ active: _vm.page === _vm.firstPage},on:{"click":function($event){return _vm.handlePageItemClick(_vm.firstPage)}}},[_vm._v(_vm._s(_vm.firstPage + 1))])]):_vm._e(),_c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.hasMorePrev),expression:"hasMorePrev"}],staticClass:"page-item"},[_c('span',[_vm._v("...")])]),_vm._l((_vm.middlePages),function(middlePage){return _c('li',{key:middlePage,staticClass:"page-item",class:{ active: middlePage === _vm.page }},[_c('button',{class:{ active: middlePage === _vm.page },on:{"click":function($event){return _vm.handlePageItemClick(middlePage)}}},[_vm._v(" "+_vm._s(middlePage + 1)+" ")])])}),_c('li',{directives:[{name:"show",rawName:"v-show",value:(_vm.hasMoreNext),expression:"hasMoreNext"}],staticClass:"page-item"},[_c('span',[_vm._v("...")])]),(_vm.lastPage)?_c('li',{staticClass:"page-item",class:{ active: _vm.page === _vm.lastPage}},[_c('button',{class:{ active: _vm.page === _vm.lastPage},on:{"click":function($event){return _vm.handlePageItemClick(_vm.lastPage)}}},[_vm._v(" "+_vm._s(_vm.lastPage + 1)+" ")])]):_vm._e(),_c('li',{staticClass:"page-item",class:{ disabled: !_vm.hasNext }},[_c('button',{staticClass:"next-button",on:{"click":_vm.handleNextClick}},[_vm._v("下一页")])])],2)}
+var Paginationvue_type_template_id_5c7eb618_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/Pagination.vue?vue&type=template&id=67f9991c&
+// CONCATENATED MODULE: ./src/components/Pagination.vue?vue&type=template&id=5c7eb618&
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/Pagination.vue?vue&type=script&lang=js&
 //
@@ -1760,8 +1462,8 @@ var Paginationvue_type_template_id_67f9991c_staticRenderFns = []
 
 var Pagination_component = Object(componentNormalizer["a" /* default */])(
   components_Paginationvue_type_script_lang_js_,
-  Paginationvue_type_template_id_67f9991c_render,
-  Paginationvue_type_template_id_67f9991c_staticRenderFns,
+  Paginationvue_type_template_id_5c7eb618_render,
+  Paginationvue_type_template_id_5c7eb618_staticRenderFns,
   false,
   null,
   null,
@@ -2749,33 +2451,6 @@ module.exports = function IsConstructor(argument) {
 
 /***/ }),
 
-/***/ "2d00":
-/***/ (function(module, exports, __webpack_require__) {
-
-var global = __webpack_require__("da84");
-var userAgent = __webpack_require__("342f");
-
-var process = global.process;
-var versions = process && process.versions;
-var v8 = versions && versions.v8;
-var match, version;
-
-if (v8) {
-  match = v8.split('.');
-  version = match[0] + match[1];
-} else if (userAgent) {
-  match = userAgent.match(/Edge\/(\d+)/);
-  if (!match || match[1] >= 74) {
-    match = userAgent.match(/Chrome\/(\d+)/);
-    if (match) version = match[1];
-  }
-}
-
-module.exports = version && +version;
-
-
-/***/ }),
-
 /***/ "2d83":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -2889,16 +2564,6 @@ module.exports = function buildURL(url, params, paramsSerializer) {
 
   return url;
 };
-
-
-/***/ }),
-
-/***/ "342f":
-/***/ (function(module, exports, __webpack_require__) {
-
-var getBuiltIn = __webpack_require__("d066");
-
-module.exports = getBuiltIn('navigator', 'userAgent') || '';
 
 
 /***/ }),
@@ -3205,110 +2870,13 @@ module.exports = function Type(x) {
 
 "use strict";
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"bbcda878-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/CommentEditor.vue?vue&type=template&id=3df98dd0&
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5465617b-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/CommentEditor.vue?vue&type=template&id=cc3b9650&
 var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return (_vm.isCurrReply)?_c('section',{ref:"editor",staticClass:"comment-editor",attrs:{"id":_vm.respondId,"role":"form"}},[(_vm.isReply)?_c('h3',{staticClass:"comment-reply-title",attrs:{"id":"reply-title"}},[_c('small',[_c('a',{staticClass:"cancel-comment-reply-link",attrs:{"rel":"nofollow","href":"javascript:void(0);","onclick":"return false;"},on:{"click":_vm.cancelReply}},[_vm._v("Cancel Reply")])])]):_vm._e(),_c('form',{staticClass:"comment-form"},[(!_vm.previewMode)?_c('div',{staticClass:"comment-textarea"},[_c('textarea',{directives:[{name:"model",rawName:"v-model",value:(_vm.comment.content),expression:"comment.content"}],staticClass:"commentbody",attrs:{"required":"required","aria-required":"true","tabindex":"4","placeholder":_vm.configs.aWord || '你是我一生只会遇见一次的惊喜 ...'},domProps:{"value":(_vm.comment.content)},on:{"input":function($event){if($event.target.composing){ return; }_vm.$set(_vm.comment, "content", $event.target.value)}}}),_c('label',{staticClass:"input-label"},[_vm._v(_vm._s(_vm.configs.aWord || '你是我一生只会遇见一次的惊喜 ...'))])]):_c('div',{staticClass:"comment-preview markdown-body",domProps:{"innerHTML":_vm._s(_vm.renderedContent)}}),_c('div',{attrs:{"id":"upload-img-show"}}),_c('p',{staticClass:"no-select",attrs:{"id":"emotion-toggle"}},[_c('span',{on:{"click":_vm.handleToogleDialogEmoji}},[_vm._v(_vm._s(!_vm.emojiDialogVisible ? '戳我试试 OωO' : '嘿嘿嘿 ヾ(≧∇≦*)ゝ'))])]),_c('transition',{attrs:{"name":"emoji-fade"}},[_c('VEmojiPicker',{directives:[{name:"show",rawName:"v-show",value:(_vm.emojiDialogVisible),expression:"emojiDialogVisible"}],attrs:{"pack":_vm.emojiPack},on:{"select":_vm.handleSelectEmoji}})],1),_c('div',{staticClass:"author-info"},[_c('div',{staticClass:"commentator"},[_c('img',{staticClass:"avatar",attrs:{"src":_vm.avatar}}),_c('div',{staticClass:"socila-check",class:[_vm.checkType.back]},[_c('i',{class:[_vm.checkType.icon],attrs:{"aria-hidden":"true"}})])]),_c('PopupInput',{staticClass:"cmt-popup cmt-author",attrs:{"popupStyle":"margin-left: -115px","popupText":_vm.configs.authorPopup || '输入QQ号将自动拉取昵称和头像',"inputType":"text","placeholder":"* 昵称","id":"author"},on:{"blurInput":_vm.pullInfo},model:{value:(_vm.comment.author),callback:function ($$v) {_vm.$set(_vm.comment, "author", $$v)},expression:"comment.author"}}),_c('PopupInput',{staticClass:"cmt-popup",attrs:{"popupStyle":"margin-left: -65px;","popupText":_vm.configs.emailPopup || '你将收到回复通知',"inputType":"text","placeholder":"* 电子邮件","id":"email"},on:{"blurInput":_vm.pullInfo},model:{value:(_vm.comment.email),callback:function ($$v) {_vm.$set(_vm.comment, "email", $$v)},expression:"comment.email"}}),_c('PopupInput',{staticClass:"cmt-popup",attrs:{"popupStyle":"margin-left: -55px;","popupText":_vm.configs.urlPopup || '禁止小广告😀',"inputType":"text","placeholder":"个人站点","id":"url"},model:{value:(_vm.comment.authorUrl),callback:function ($$v) {_vm.$set(_vm.comment, "authorUrl", $$v)},expression:"comment.authorUrl"}})],1),_c('ul',{staticClass:"comment-buttons"},[(_vm.comment.content)?_c('li',{staticClass:"middle",staticStyle:{"margin-right":"5px"}},[_c('a',{staticClass:"button-preview-edit",attrs:{"href":"javascript:void(0)","rel":"nofollow noopener"},on:{"click":_vm.handlePreviewContent}},[_vm._v(_vm._s(_vm.previewMode?'编辑':'预览'))])]):_vm._e(),_c('li',{staticClass:"middle"},[_c('a',{staticClass:"button-submit",attrs:{"href":"javascript:void(0)","tabindex":"5","rel":"nofollow noopener"},on:{"click":_vm.handleSubmitClick}},[_vm._v("提交")])])])],1)]):_vm._e()}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/CommentEditor.vue?vue&type=template&id=3df98dd0&
+// CONCATENATED MODULE: ./src/components/CommentEditor.vue?vue&type=template&id=cc3b9650&
 
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.for-each.js
-var es_array_for_each = __webpack_require__("4160");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.index-of.js
-var es_array_index_of = __webpack_require__("c975");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.function.name.js
-var es_function_name = __webpack_require__("b0c0");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.number.constructor.js
-var es_number_constructor = __webpack_require__("a9e3");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.keys.js
-var es_object_keys = __webpack_require__("b64b");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.to-string.js
-var es_object_to_string = __webpack_require__("d3b7");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.exec.js
-var es_regexp_exec = __webpack_require__("ac1f");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.split.js
-var es_string_split = __webpack_require__("1276");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/web.dom-collections.for-each.js
-var web_dom_collections_for_each = __webpack_require__("159b");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.js
-var es_symbol = __webpack_require__("a4d3");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.filter.js
-var es_array_filter = __webpack_require__("4de4");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.get-own-property-descriptor.js
-var es_object_get_own_property_descriptor = __webpack_require__("e439");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.get-own-property-descriptors.js
-var es_object_get_own_property_descriptors = __webpack_require__("dbb4");
-
-// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/defineProperty.js
-function _defineProperty(obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true
-    });
-  } else {
-    obj[key] = value;
-  }
-
-  return obj;
-}
-// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/objectSpread2.js
-
-
-
-
-
-
-
-
-
-function ownKeys(object, enumerableOnly) {
-  var keys = Object.keys(object);
-
-  if (Object.getOwnPropertySymbols) {
-    var symbols = Object.getOwnPropertySymbols(object);
-    if (enumerableOnly) symbols = symbols.filter(function (sym) {
-      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
-    });
-    keys.push.apply(keys, symbols);
-  }
-
-  return keys;
-}
-
-function _objectSpread2(target) {
-  for (var i = 1; i < arguments.length; i++) {
-    var source = arguments[i] != null ? arguments[i] : {};
-
-    if (i % 2) {
-      ownKeys(Object(source), true).forEach(function (key) {
-        _defineProperty(target, key, source[key]);
-      });
-    } else if (Object.getOwnPropertyDescriptors) {
-      Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
-    } else {
-      ownKeys(Object(source)).forEach(function (key) {
-        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
-      });
-    }
-  }
-
-  return target;
-}
 // EXTERNAL MODULE: external "Vue"
 var external_Vue_ = __webpack_require__("8bbf");
 var external_Vue_default = /*#__PURE__*/__webpack_require__.n(external_Vue_);
@@ -3321,19 +2889,19 @@ var marked_default = /*#__PURE__*/__webpack_require__.n(marked);
 var md5 = __webpack_require__("6821");
 var md5_default = /*#__PURE__*/__webpack_require__.n(md5);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"bbcda878-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/VEmojiPicker.vue?vue&type=template&id=2413c210&
-var VEmojiPickervue_type_template_id_2413c210_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"emotion-box no-select"},[(_vm.showCategory)?_c('Categories',{on:{"select":function($event){return _vm.onChangeCategory($event)}}}):_vm._e(),_c('keep-alive',[_c('EmojiList',{attrs:{"data":_vm.emojis,"category":_vm.category},on:{"select":function($event){return _vm.onSelectEmoji(arguments)}}})],1)],1)}
-var VEmojiPickervue_type_template_id_2413c210_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5465617b-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/VEmojiPicker.vue?vue&type=template&id=9122b058&
+var VEmojiPickervue_type_template_id_9122b058_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"emotion-box no-select"},[(_vm.showCategory)?_c('Categories',{on:{"select":function($event){return _vm.onChangeCategory($event)}}}):_vm._e(),_c('keep-alive',[_c('EmojiList',{attrs:{"data":_vm.emojis,"category":_vm.category},on:{"select":function($event){return _vm.onSelectEmoji(arguments)}}})],1)],1)}
+var VEmojiPickervue_type_template_id_9122b058_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/EmojiPicker/VEmojiPicker.vue?vue&type=template&id=2413c210&
+// CONCATENATED MODULE: ./src/components/EmojiPicker/VEmojiPicker.vue?vue&type=template&id=9122b058&
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"bbcda878-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/Categories.vue?vue&type=template&id=441e9ae5&
-var Categoriesvue_type_template_id_441e9ae5_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('transition',{attrs:{"name":"category"}},[_c('table',{staticClass:"motion-switcher-table"},[_c('tbody',[_c('tr',_vm._l((_vm.categories),function(categorie,index){return _c('th',{key:index,class:['category', categorie.name + '-box', { active: index === _vm.active }, {'on-hover': index === _vm.active}],on:{"click":function($event){return _vm.onSelect(index)}}},[_vm._v(_vm._s(categorie.title))])}),0)])])])}
-var Categoriesvue_type_template_id_441e9ae5_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5465617b-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/Categories.vue?vue&type=template&id=bb4721de&
+var Categoriesvue_type_template_id_bb4721de_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('transition',{attrs:{"name":"category"}},[_c('table',{staticClass:"motion-switcher-table"},[_c('tbody',[_c('tr',_vm._l((_vm.categories),function(categorie,index){return _c('th',{key:index,class:['category', categorie.name + '-box', { active: index === _vm.active }, {'on-hover': index === _vm.active}],on:{"click":function($event){return _vm.onSelect(index)}}},[_vm._v(_vm._s(categorie.title))])}),0)])])])}
+var Categoriesvue_type_template_id_bb4721de_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/EmojiPicker/Categories.vue?vue&type=template&id=441e9ae5&
+// CONCATENATED MODULE: ./src/components/EmojiPicker/Categories.vue?vue&type=template&id=bb4721de&
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/Categories.vue?vue&type=script&lang=js&
 //
@@ -3392,8 +2960,8 @@ var componentNormalizer = __webpack_require__("2877");
 
 var component = Object(componentNormalizer["a" /* default */])(
   EmojiPicker_Categoriesvue_type_script_lang_js_,
-  Categoriesvue_type_template_id_441e9ae5_render,
-  Categoriesvue_type_template_id_441e9ae5_staticRenderFns,
+  Categoriesvue_type_template_id_bb4721de_render,
+  Categoriesvue_type_template_id_bb4721de_staticRenderFns,
   false,
   null,
   null,
@@ -3402,19 +2970,19 @@ var component = Object(componentNormalizer["a" /* default */])(
 )
 
 /* harmony default export */ var Categories = (component.exports);
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"bbcda878-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/EmojiList.vue?vue&type=template&id=bf67a9e4&
-var EmojiListvue_type_template_id_bf67a9e4_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"motion-container",class:_vm.categoryClass,attrs:{"id":"container-emoji"}},_vm._l((_vm.data[_vm.category]),function(emoji,index){return _c(_vm.categoryEmoji,{key:index,tag:"component",attrs:{"data":emoji},nativeOn:{"click":function($event){return _vm.onSelect(emoji, _vm.type)}}})}),1)}
-var EmojiListvue_type_template_id_bf67a9e4_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5465617b-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/EmojiList.vue?vue&type=template&id=32034b26&
+var EmojiListvue_type_template_id_32034b26_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"motion-container",class:_vm.categoryClass,attrs:{"id":"container-emoji"}},_vm._l((_vm.data[_vm.category]),function(emoji,index){return _c(_vm.categoryEmoji,{key:index,tag:"component",attrs:{"data":emoji},nativeOn:{"click":function($event){return _vm.onSelect(emoji, _vm.type)}}})}),1)}
+var EmojiListvue_type_template_id_32034b26_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/EmojiPicker/EmojiList.vue?vue&type=template&id=bf67a9e4&
+// CONCATENATED MODULE: ./src/components/EmojiPicker/EmojiList.vue?vue&type=template&id=32034b26&
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"bbcda878-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/BilibiliEmoji.vue?vue&type=template&id=e1039c80&
-var BilibiliEmojivue_type_template_id_e1039c80_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('span',{staticClass:"emotion-secter emotion-item emotion-select-parent",style:(_vm.biliSpanStyle)},[_c('div',{staticClass:"img emotion-select-child",style:(_vm.biliImgStyle)})])}
-var BilibiliEmojivue_type_template_id_e1039c80_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5465617b-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/BilibiliEmoji.vue?vue&type=template&id=38265381&
+var BilibiliEmojivue_type_template_id_38265381_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('span',{staticClass:"emotion-secter emotion-item emotion-select-parent",style:(_vm.biliSpanStyle)},[_c('div',{staticClass:"img emotion-select-child",style:(_vm.biliImgStyle)})])}
+var BilibiliEmojivue_type_template_id_38265381_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/EmojiPicker/BilibiliEmoji.vue?vue&type=template&id=e1039c80&
+// CONCATENATED MODULE: ./src/components/EmojiPicker/BilibiliEmoji.vue?vue&type=template&id=38265381&
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/BilibiliEmoji.vue?vue&type=script&lang=js&
 //
@@ -3467,8 +3035,8 @@ var BilibiliEmojivue_type_template_id_e1039c80_staticRenderFns = []
 
 var BilibiliEmoji_component = Object(componentNormalizer["a" /* default */])(
   EmojiPicker_BilibiliEmojivue_type_script_lang_js_,
-  BilibiliEmojivue_type_template_id_e1039c80_render,
-  BilibiliEmojivue_type_template_id_e1039c80_staticRenderFns,
+  BilibiliEmojivue_type_template_id_38265381_render,
+  BilibiliEmojivue_type_template_id_38265381_staticRenderFns,
   false,
   null,
   null,
@@ -3477,12 +3045,12 @@ var BilibiliEmoji_component = Object(componentNormalizer["a" /* default */])(
 )
 
 /* harmony default export */ var BilibiliEmoji = (BilibiliEmoji_component.exports);
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"bbcda878-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/MenheraEmoji.vue?vue&type=template&id=3fdcf991&
-var MenheraEmojivue_type_template_id_3fdcf991_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('a',{staticClass:"emoji-item"},[_vm._v(" "+_vm._s(_vm.data.name)+" ")])}
-var MenheraEmojivue_type_template_id_3fdcf991_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5465617b-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/MenheraEmoji.vue?vue&type=template&id=3fbbeddf&
+var MenheraEmojivue_type_template_id_3fbbeddf_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('a',{staticClass:"emoji-item"},[_vm._v(" "+_vm._s(_vm.data.name)+" ")])}
+var MenheraEmojivue_type_template_id_3fbbeddf_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/EmojiPicker/MenheraEmoji.vue?vue&type=template&id=3fdcf991&
+// CONCATENATED MODULE: ./src/components/EmojiPicker/MenheraEmoji.vue?vue&type=template&id=3fbbeddf&
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/MenheraEmoji.vue?vue&type=script&lang=js&
 //
@@ -3511,8 +3079,8 @@ var MenheraEmojivue_type_template_id_3fdcf991_staticRenderFns = []
 
 var MenheraEmoji_component = Object(componentNormalizer["a" /* default */])(
   EmojiPicker_MenheraEmojivue_type_script_lang_js_,
-  MenheraEmojivue_type_template_id_3fdcf991_render,
-  MenheraEmojivue_type_template_id_3fdcf991_staticRenderFns,
+  MenheraEmojivue_type_template_id_3fbbeddf_render,
+  MenheraEmojivue_type_template_id_3fbbeddf_staticRenderFns,
   false,
   null,
   null,
@@ -3521,12 +3089,12 @@ var MenheraEmoji_component = Object(componentNormalizer["a" /* default */])(
 )
 
 /* harmony default export */ var MenheraEmoji = (MenheraEmoji_component.exports);
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"bbcda878-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/TiebaEmoji.vue?vue&type=template&id=0e25cc38&
-var TiebaEmojivue_type_template_id_0e25cc38_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('span',{attrs:{"title":_vm.data.description}},[_c('img',{attrs:{"src":_vm.tiebaSrc}})])}
-var TiebaEmojivue_type_template_id_0e25cc38_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5465617b-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/TiebaEmoji.vue?vue&type=template&id=778e3b05&
+var TiebaEmojivue_type_template_id_778e3b05_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('span',{attrs:{"title":_vm.data.description}},[_c('img',{attrs:{"src":_vm.tiebaSrc}})])}
+var TiebaEmojivue_type_template_id_778e3b05_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/EmojiPicker/TiebaEmoji.vue?vue&type=template&id=0e25cc38&
+// CONCATENATED MODULE: ./src/components/EmojiPicker/TiebaEmoji.vue?vue&type=template&id=778e3b05&
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/EmojiPicker/TiebaEmoji.vue?vue&type=script&lang=js&
 //
@@ -3566,8 +3134,8 @@ var TiebaEmojivue_type_template_id_0e25cc38_staticRenderFns = []
 
 var TiebaEmoji_component = Object(componentNormalizer["a" /* default */])(
   EmojiPicker_TiebaEmojivue_type_script_lang_js_,
-  TiebaEmojivue_type_template_id_0e25cc38_render,
-  TiebaEmojivue_type_template_id_0e25cc38_staticRenderFns,
+  TiebaEmojivue_type_template_id_778e3b05_render,
+  TiebaEmojivue_type_template_id_778e3b05_staticRenderFns,
   false,
   null,
   null,
@@ -3664,8 +3232,8 @@ var TiebaEmoji_component = Object(componentNormalizer["a" /* default */])(
 
 var EmojiList_component = Object(componentNormalizer["a" /* default */])(
   EmojiPicker_EmojiListvue_type_script_lang_js_,
-  EmojiListvue_type_template_id_bf67a9e4_render,
-  EmojiListvue_type_template_id_bf67a9e4_staticRenderFns,
+  EmojiListvue_type_template_id_32034b26_render,
+  EmojiListvue_type_template_id_32034b26_staticRenderFns,
   false,
   null,
   null,
@@ -3765,8 +3333,8 @@ var EmojiList_component = Object(componentNormalizer["a" /* default */])(
 
 var VEmojiPicker_component = Object(componentNormalizer["a" /* default */])(
   EmojiPicker_VEmojiPickervue_type_script_lang_js_,
-  VEmojiPickervue_type_template_id_2413c210_render,
-  VEmojiPickervue_type_template_id_2413c210_staticRenderFns,
+  VEmojiPickervue_type_template_id_9122b058_render,
+  VEmojiPickervue_type_template_id_9122b058_staticRenderFns,
   false,
   null,
   null,
@@ -3791,12 +3359,12 @@ var api_comment = __webpack_require__("063c");
 var axios = __webpack_require__("bc3a");
 var axios_default = /*#__PURE__*/__webpack_require__.n(axios);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"bbcda878-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/PopupInput/index.vue?vue&type=template&id=59b25854&
-var PopupInputvue_type_template_id_59b25854_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"popup"},[_c('transition',{attrs:{"name":"fade"}},[_c('span',{directives:[{name:"show",rawName:"v-show",value:(_vm.isPopup),expression:"isPopup"}],staticClass:"popuptext",style:(_vm.popupStyle)},[_vm._v(" "+_vm._s(_vm.popupText)+" ")])]),_c('input',{attrs:{"type":_vm.inputType,"required":"required","aria-required":"true","placeholder":_vm.placeholder},domProps:{"value":_vm.value},on:{"focus":function($event){_vm.isPopup=true},"blur":_vm.inputBlur,"input":function($event){return _vm.$emit('input', $event.target.value)}}})],1)}
-var PopupInputvue_type_template_id_59b25854_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5465617b-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/PopupInput/index.vue?vue&type=template&id=2b8851d8&
+var PopupInputvue_type_template_id_2b8851d8_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"popup"},[_c('transition',{attrs:{"name":"fade"}},[_c('span',{directives:[{name:"show",rawName:"v-show",value:(_vm.isPopup),expression:"isPopup"}],staticClass:"popuptext",style:(_vm.popupStyle)},[_vm._v(" "+_vm._s(_vm.popupText)+" ")])]),_c('input',{attrs:{"type":_vm.inputType,"required":"required","aria-required":"true","placeholder":_vm.placeholder},domProps:{"value":_vm.value},on:{"focus":function($event){_vm.isPopup=true},"blur":_vm.inputBlur,"input":function($event){return _vm.$emit('input', $event.target.value)}}})],1)}
+var PopupInputvue_type_template_id_2b8851d8_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/PopupInput/index.vue?vue&type=template&id=59b25854&
+// CONCATENATED MODULE: ./src/components/PopupInput/index.vue?vue&type=template&id=2b8851d8&
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/PopupInput/index.vue?vue&type=script&lang=js&
 //
@@ -3834,16 +3402,19 @@ var PopupInputvue_type_template_id_59b25854_staticRenderFns = []
     placeholder: String
   },
   methods: {
-    inputBlur: function inputBlur($event) {
+    inputBlur($event) {
       this.isPopup = false;
       this.$emit('blurInput', $event.target.value);
     }
+
   },
-  data: function data() {
+
+  data() {
     return {
       isPopup: false
     };
   }
+
 });
 // CONCATENATED MODULE: ./src/components/PopupInput/index.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_PopupInputvue_type_script_lang_js_ = (PopupInputvue_type_script_lang_js_); 
@@ -3857,13 +3428,13 @@ var PopupInputvue_type_template_id_59b25854_staticRenderFns = []
 
 var PopupInput_component = Object(componentNormalizer["a" /* default */])(
   components_PopupInputvue_type_script_lang_js_,
-  PopupInputvue_type_template_id_59b25854_render,
-  PopupInputvue_type_template_id_59b25854_staticRenderFns,
+  PopupInputvue_type_template_id_2b8851d8_render,
+  PopupInputvue_type_template_id_2b8851d8_staticRenderFns,
   false,
   null,
   null,
   null
-  
+  ,true
 )
 
 /* harmony default export */ var PopupInput = (PopupInput_component.exports);
@@ -4024,16 +3595,6 @@ function loop() {
   }
 }
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/CommentEditor.vue?vue&type=script&lang=js&
-
-
-
-
-
-
-
-
-
-
 //
 //
 //
@@ -4169,14 +3730,14 @@ function loop() {
       type: String,
       required: false,
       default: "posts",
-      validator: function validator(value) {
+      validator: function (value) {
         return ["posts", "sheets", "journals"].indexOf(value) !== -1;
       }
     },
     replyComment: {
       type: Object,
       required: false,
-      default: function _default() {}
+      default: () => {}
     },
     options: {
       required: false,
@@ -4187,7 +3748,8 @@ function loop() {
       required: true
     }
   },
-  data: function data() {
+
+  data() {
     return {
       emojiPack: emojis2["default"],
       emojiDialogVisible: false,
@@ -4210,28 +3772,30 @@ function loop() {
       avatar: this.configs.gravatarSource + "?d=mm"
     };
   },
+
   computed: {
-    renderedContent: function renderedContent() {
-      var html = this.comment.content ? marked_default()(this.comment.content) : "";
+    renderedContent() {
+      let html = this.comment.content ? marked_default()(this.comment.content) : "";
       return Object(util["h" /* return2Br */])(Object(emojiutil["a" /* renderedEmojiHtml */])(html));
     },
-    commentValid: function commentValid() {
+
+    commentValid() {
       return !Object(util["b" /* isEmpty */])(this.comment.author) && !Object(util["b" /* isEmpty */])(this.comment.email) && !Object(util["b" /* isEmpty */])(this.comment.content);
     },
-    isReply: function isReply() {
+
+    isReply() {
       return this.globalData.replyId != 0;
     },
-    isCurrReply: function isCurrReply() {
-      var _this = this;
 
-      var isCurr = !this.replyComment || this.globalData.replyId == this.replyComment.id;
+    isCurrReply() {
+      let isCurr = !this.replyComment || this.globalData.replyId == this.replyComment.id;
 
       if (isCurr) {
         // 获取当前评论组件相对于document的位置并跳转
         if (this.isReply) {
-          this.viewJump(function (dom) {
+          this.viewJump(dom => {
             // 获取定位并移动视角
-            var rootOffsetTop = _this.$root.$el.offsetTop;
+            var rootOffsetTop = this.$root.$el.offsetTop;
             var offsetTop = dom.offsetTop + rootOffsetTop;
             var clientHeight = window.innerHeight;
             var objHeight = dom.offsetHeight;
@@ -4242,11 +3806,14 @@ function loop() {
 
       return isCurr;
     },
-    respondId: function respondId() {
+
+    respondId() {
       return "respond-" + (!this.replyComment ? 0 : this.replyComment.id);
     }
+
   },
-  created: function created() {
+
+  created() {
     // Get info from local storage
     var author = localStorage.getItem("comment-author");
     var authorUrl = localStorage.getItem("comment-authorUrl");
@@ -4256,7 +3823,7 @@ function loop() {
     this.comment.authorUrl = authorUrl ? authorUrl : "";
     this.comment.email = email ? email : "";
     this.avatar = avatar ? avatar : this.avatar;
-    this.$nextTick(function () {
+    this.$nextTick(() => {
       POWERMODE.colorful = true; // make power mode colorful
 
       POWERMODE.shake = false; // turn off shake
@@ -4264,10 +3831,9 @@ function loop() {
       document.body.addEventListener('input', POWERMODE);
     });
   },
-  methods: {
-    handleSubmitClick: function handleSubmitClick() {
-      var _this2 = this;
 
+  methods: {
+    handleSubmitClick() {
       if (Object(util["b" /* isEmpty */])(this.comment.author)) {
         this.$tips("昵称不能为空", 5000, this);
         return;
@@ -4291,30 +3857,31 @@ function loop() {
         this.comment.parentId = this.replyComment.id;
       }
 
-      api_comment["a" /* default */].createComment(this.target, this.comment).then(function (response) {
+      api_comment["a" /* default */].createComment(this.target, this.comment).then(response => {
         // Store comment author, email, authorUrl
-        localStorage.setItem("comment-author", _this2.comment.author);
-        localStorage.setItem("comment-email", _this2.comment.email);
-        localStorage.setItem("comment-authorUrl", _this2.comment.authorUrl);
-        localStorage.setItem("avatar", _this2.avatar); // clear comment
+        localStorage.setItem("comment-author", this.comment.author);
+        localStorage.setItem("comment-email", this.comment.email);
+        localStorage.setItem("comment-authorUrl", this.comment.authorUrl);
+        localStorage.setItem("avatar", this.avatar); // clear comment
 
-        _this2.comment.content = "";
-
-        _this2.handleCommentCreated(response.data.data);
-      }).catch(function (error) {
-        _this2.handleFailedToCreateComment(error.response);
+        this.comment.content = "";
+        this.handleCommentCreated(response.data.data);
+      }).catch(error => {
+        this.handleFailedToCreateComment(error.response);
       });
     },
-    handlePreviewContent: function handlePreviewContent() {
+
+    handlePreviewContent() {
       this.previewMode = !this.previewMode;
     },
-    handleCommentCreated: function handleCommentCreated(createdComment) {
+
+    handleCommentCreated(createdComment) {
       if (createdComment.status === "PUBLISHED") {
         // 成功后直接新增新的评论node
         try {
           this.createdNewNode(createdComment);
           this.$tips("评论成功！", 5000, this);
-        } catch (_unused) {
+        } catch {
           this.$tips("评论成功，刷新即可显示最新评论！", 5000, this);
         }
       } else {
@@ -4322,34 +3889,35 @@ function loop() {
         this.$tips("您的评论已经投递至博主，等待博主审核！", 5000, this);
       }
     },
-    createdNewNode: function createdNewNode(newComment) {
-      var elDom = this.$root.$el;
-      var pr = {
+
+    createdNewNode(newComment) {
+      let elDom = this.$root.$el;
+      let pr = {
         targetId: this.targetId,
         target: this.target,
         options: this.options,
         configs: this.configs,
         comment: newComment
       };
-      pr = newComment.parentId == 0 ? pr : _objectSpread2(_objectSpread2({}, pr), {
-        isChild: true,
-        parent: this.replyComment,
-        depth: this.$parent.selfAddDepth
-      });
+      pr = newComment.parentId == 0 ? pr : { ...pr,
+        ...{
+          isChild: true,
+          parent: this.replyComment,
+          depth: this.$parent.selfAddDepth
+        }
+      };
 
-      var CommentNode = function CommentNode() {
-        return Promise.resolve(/* import() */).then(__webpack_require__.bind(null, "f9af"));
-      }; // 创建一个组件
+      const CommentNode = () => Promise.resolve(/* import() */).then(__webpack_require__.bind(null, "f9af")); // 创建一个组件
 
 
-      var comment = new external_Vue_default.a({
-        render: function render(h) {
+      let comment = new external_Vue_default.a({
+        render: h => {
           return h(CommentNode, {
             props: pr
           });
         }
       });
-      var dom;
+      let dom;
 
       if (newComment.parentId == 0) {
         if (elDom.getElementsByClassName("commentwrap").length > 0) {
@@ -4357,14 +3925,14 @@ function loop() {
         } else {
           dom = document.createElement("ul");
           dom.setAttribute("class", "commentwrap");
-          var emptyDom = elDom.getElementsByClassName("comment-empty")[0];
+          let emptyDom = elDom.getElementsByClassName("comment-empty")[0];
           emptyDom.parentNode.replaceChild(dom, emptyDom);
         }
       } else {
         // 获取li
-        var parentDom = elDom.getElementsByClassName("comment-" + this.replyComment.id)[0]; // 获取li下的ul节点
+        let parentDom = elDom.getElementsByClassName("comment-" + this.replyComment.id)[0]; // 获取li下的ul节点
 
-        var replyDom = parentDom.getElementsByTagName("ul");
+        let replyDom = parentDom.getElementsByTagName("ul");
 
         if (replyDom.length > 0) {
           dom = replyDom[0];
@@ -4375,7 +3943,7 @@ function loop() {
         }
       }
 
-      var nodeDom = document.createElement('div');
+      let nodeDom = document.createElement('div');
 
       if (dom.children[0]) {
         dom.insertBefore(nodeDom, dom.children[0]);
@@ -4385,29 +3953,30 @@ function loop() {
 
       comment.$mount(nodeDom);
     },
-    handleFailedToCreateComment: function handleFailedToCreateComment(response) {
-      var _this3 = this;
 
+    handleFailedToCreateComment(response) {
       if (response.status === 400) {
         this.$tips(response.data.message);
 
         if (response.data) {
-          var errorDetail = response.data.data;
+          const errorDetail = response.data.data;
 
           if (Object(util["d" /* isObject */])(errorDetail)) {
-            Object.keys(errorDetail).forEach(function (key) {
-              _this3.$tips(errorDetail[key]);
+            Object.keys(errorDetail).forEach(key => {
+              this.$tips(errorDetail[key]);
             });
           }
         }
       }
     },
-    handleToogleDialogEmoji: function handleToogleDialogEmoji() {
+
+    handleToogleDialogEmoji() {
       this.emojiDialogVisible = !this.emojiDialogVisible;
     },
-    handleSelectEmoji: function handleSelectEmoji(args) {
-      var emoji, type;
-      var emojiComment;
+
+    handleSelectEmoji(args) {
+      let emoji, type;
+      let emojiComment;
 
       if (args.length == 0) {
         return;
@@ -4433,33 +4002,32 @@ function loop() {
 
       this.comment.content += " " + emojiComment + " ";
     },
-    handleGithubLogin: function handleGithubLogin() {
-      var githubOauthUrl = "http://github.com/login/oauth/authorize";
-      var query = {
+
+    handleGithubLogin() {
+      const githubOauthUrl = "http://github.com/login/oauth/authorize";
+      const query = {
         client_id: "a1aacd842bc158abd65b",
         redirect_uri: window.location.href,
         scope: "public_repo"
       };
-      window.location.href = "".concat(githubOauthUrl, "?").concat(Object(util["f" /* queryStringify */])(query));
+      window.location.href = `${githubOauthUrl}?${Object(util["f" /* queryStringify */])(query)}`;
     },
-    handleGetGithubUser: function handleGetGithubUser() {
-      var _this4 = this;
 
-      var accessToken = this.handleGetGithubAccessToken();
+    handleGetGithubUser() {
+      const accessToken = this.handleGetGithubAccessToken();
       axios_default.a.get("https://cors-anywhere.herokuapp.com/https://api.github.com/user", {
         params: {
           access_token: accessToken
         }
       }).then(function (response) {
         this.$tips(response);
-      }).catch(function (error) {
-        _this4.$tips(error);
+      }).catch(error => {
+        this.$tips(error);
       });
     },
-    handleGetGithubAccessToken: function handleGetGithubAccessToken() {
-      var _this5 = this;
 
-      var code = Object(util["a" /* getUrlKey */])("code");
+    handleGetGithubAccessToken() {
+      const code = Object(util["a" /* getUrlKey */])("code");
 
       if (code) {
         axios_default.a.get("https://cors-anywhere.herokuapp.com/https://github.com/login/oauth/access_token", {
@@ -4469,17 +4037,18 @@ function loop() {
             code: code
           }
         }).then(function (response) {
-          var args = response.split("&");
-          var arg = args[0].split("=");
-          var access_token = arg[1];
+          let args = response.split("&");
+          let arg = args[0].split("=");
+          let access_token = arg[1];
           this.$tips(access_token);
           return access_token;
-        }).catch(function (error) {
-          _this5.$tips(error);
+        }).catch(error => {
+          this.$tips(error);
         });
       }
     },
-    cancelReply: function cancelReply() {
+
+    cancelReply() {
       // 当replyId为0时则为回复博主
       this.globalData.replyId = 0;
       this.globalData.isReplyData = false; // 取消回复后，将跳转至回复前的地方
@@ -4488,18 +4057,16 @@ function loop() {
       var offsetTop = targetDom.offsetTop + this.$root.$el.offsetTop;
       window.scrollTo(document.body.scrollWidth, offsetTop);
     },
-    pullInfo: function pullInfo() {
-      var _this6 = this;
 
-      var author = this.comment.author;
+    pullInfo() {
+      let author = this.comment.author;
 
       if (author.length != 0 && Object(util["e" /* isQQ */])(author)) {
         // 如果是QQ号，则拉取QQ头像
-        this.pullQQInfo(function () {
-          _this6.$tips("拉取QQ信息失败！尝试拉取Gravatar", 2000, _this6); // 如果QQ拉取失败，则尝试拉取Gravatar
+        this.pullQQInfo(() => {
+          this.$tips("拉取QQ信息失败！尝试拉取Gravatar", 2000, this); // 如果QQ拉取失败，则尝试拉取Gravatar
 
-
-          _this6.pullGravatarInfo();
+          this.pullGravatarInfo();
         });
         return;
       } // 防止刚拉取完QQ头像就拉取Gravatar头像
@@ -4513,8 +4080,9 @@ function loop() {
 
       this.pullGravatarInfo();
     },
-    pullQQInfo: function pullQQInfo(errorQQCallback) {
-      var _self = this; // 拉取QQ昵称，头像等
+
+    pullQQInfo(errorQQCallback) {
+      let _self = this; // 拉取QQ昵称，头像等
 
 
       axios_default.a.get("https://api.lixingyong.com/api/qq", {
@@ -4522,7 +4090,7 @@ function loop() {
           id: _self.comment.author
         }
       }).then(function (res) {
-        var data = res.data;
+        let data = res.data;
 
         if (!!data.code && data.code == 500) {
           errorQQCallback();
@@ -4534,28 +4102,29 @@ function loop() {
         _self.comment.email = data.email;
         _self.avatar = data.avatar;
         _self.lockPullAvatar = true;
-      }).catch(function () {
+      }).catch(() => {
         errorQQCallback();
       });
     },
-    pullGravatarInfo: function pullGravatarInfo() {
-      var gravatarMd5 = md5_default()(this.comment.email);
-      var gravatarSource = this.options.gravatar_source || this.configs.gravatarSource;
-      this.avatar = gravatarSource + "/".concat(gravatarMd5, "?s=256&d=") + this.options.comment_gravatar_default;
+
+    pullGravatarInfo() {
+      const gravatarMd5 = md5_default()(this.comment.email);
+      const gravatarSource = this.options.gravatar_source || this.configs.gravatarSource;
+      this.avatar = gravatarSource + `/${gravatarMd5}?s=256&d=` + this.options.comment_gravatar_default;
     },
+
     // 锚点跳转
-    viewJump: function viewJump(callback, targetDom) {
-      var _this7 = this;
-
+    viewJump(callback, targetDom) {
       // dom为异步更新，因此务必放在nextTick内，否则无法获取到dom。
-      this.$nextTick(function () {
-        var dom = targetDom || _this7.$el; // 若当前dom不在可视范围内，则将视角移动至dom下
+      this.$nextTick(() => {
+        var dom = targetDom || this.$el; // 若当前dom不在可视范围内，则将视角移动至dom下
 
-        if (!Object(util["c" /* isInVisibleArea */])(dom, _this7.$root.$el, "bottom")) {
+        if (!Object(util["c" /* isInVisibleArea */])(dom, this.$root.$el, "bottom")) {
           callback(dom);
         }
       });
     }
+
   }
 });
 // CONCATENATED MODULE: ./src/components/CommentEditor.vue?vue&type=script&lang=js&
@@ -4576,7 +4145,7 @@ var CommentEditor_component = Object(componentNormalizer["a" /* default */])(
   null,
   null,
   null
-  
+  ,true
 )
 
 /* harmony default export */ var CommentEditor = __webpack_exports__["a"] = (CommentEditor_component.exports);
@@ -4587,23 +4156,6 @@ var CommentEditor_component = Object(componentNormalizer["a" /* default */])(
 /***/ (function(module, exports) {
 
 module.exports = {};
-
-
-/***/ }),
-
-/***/ "4160":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var $ = __webpack_require__("23e7");
-var forEach = __webpack_require__("17c2");
-
-// `Array.prototype.forEach` method
-// https://tc39.github.io/ecma262/#sec-array.prototype.foreach
-$({ target: 'Array', proto: true, forced: [].forEach != forEach }, {
-  forEach: forEach
-});
 
 
 /***/ }),
@@ -4706,25 +4258,6 @@ module.exports = function (key) {
 
 /***/ }),
 
-/***/ "44e7":
-/***/ (function(module, exports, __webpack_require__) {
-
-var isObject = __webpack_require__("861d");
-var classof = __webpack_require__("c6b6");
-var wellKnownSymbol = __webpack_require__("b622");
-
-var MATCH = wellKnownSymbol('match');
-
-// `IsRegExp` abstract operation
-// https://tc39.github.io/ecma262/#sec-isregexp
-module.exports = function (it) {
-  var isRegExp;
-  return isObject(it) && ((isRegExp = it[MATCH]) !== undefined ? !!isRegExp : classof(it) == 'RegExp');
-};
-
-
-/***/ }),
-
 /***/ "467f":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -4753,26 +4286,6 @@ module.exports = function settle(resolve, reject, response) {
       response
     ));
   }
-};
-
-
-/***/ }),
-
-/***/ "4840":
-/***/ (function(module, exports, __webpack_require__) {
-
-var anObject = __webpack_require__("825a");
-var aFunction = __webpack_require__("1c0b");
-var wellKnownSymbol = __webpack_require__("b622");
-
-var SPECIES = wellKnownSymbol('species');
-
-// `SpeciesConstructor` abstract operation
-// https://tc39.github.io/ecma262/#sec-speciesconstructor
-module.exports = function (O, defaultConstructor) {
-  var C = anObject(O).constructor;
-  var S;
-  return C === undefined || (S = anObject(C)[SPECIES]) == undefined ? defaultConstructor : aFunction(S);
 };
 
 
@@ -4922,32 +4435,6 @@ module.exports = {
   // https://tc39.github.io/ecma262/#sec-array.prototype.indexof
   indexOf: createMethod(false)
 };
-
-
-/***/ }),
-
-/***/ "4de4":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var $ = __webpack_require__("23e7");
-var $filter = __webpack_require__("b727").filter;
-var arrayMethodHasSpeciesSupport = __webpack_require__("1dde");
-var arrayMethodUsesToLength = __webpack_require__("ae40");
-
-var HAS_SPECIES_SUPPORT = arrayMethodHasSpeciesSupport('filter');
-// Edge 14- issue
-var USES_TO_LENGTH = arrayMethodUsesToLength('filter');
-
-// `Array.prototype.filter` method
-// https://tc39.github.io/ecma262/#sec-array.prototype.filter
-// with adding support of @@species
-$({ target: 'Array', proto: true, forced: !HAS_SPECIES_SUPPORT || !USES_TO_LENGTH }, {
-  filter: function filter(callbackfn /* , thisArg */) {
-    return $filter(this, callbackfn, arguments.length > 1 ? arguments[1] : undefined);
-  }
-});
 
 
 /***/ }),
@@ -5325,51 +4812,6 @@ module.exports = getBuiltIn('Reflect', 'ownKeys') || function ownKeys(it) {
 
 /***/ }),
 
-/***/ "5899":
-/***/ (function(module, exports) {
-
-// a string of all valid unicode whitespaces
-// eslint-disable-next-line max-len
-module.exports = '\u0009\u000A\u000B\u000C\u000D\u0020\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F\u205F\u3000\u2028\u2029\uFEFF';
-
-
-/***/ }),
-
-/***/ "58a8":
-/***/ (function(module, exports, __webpack_require__) {
-
-var requireObjectCoercible = __webpack_require__("1d80");
-var whitespaces = __webpack_require__("5899");
-
-var whitespace = '[' + whitespaces + ']';
-var ltrim = RegExp('^' + whitespace + whitespace + '*');
-var rtrim = RegExp(whitespace + whitespace + '*$');
-
-// `String.prototype.{ trim, trimStart, trimEnd, trimLeft, trimRight }` methods implementation
-var createMethod = function (TYPE) {
-  return function ($this) {
-    var string = String(requireObjectCoercible($this));
-    if (TYPE & 1) string = string.replace(ltrim, '');
-    if (TYPE & 2) string = string.replace(rtrim, '');
-    return string;
-  };
-};
-
-module.exports = {
-  // `String.prototype.{ trimLeft, trimStart }` methods
-  // https://tc39.github.io/ecma262/#sec-string.prototype.trimstart
-  start: createMethod(1),
-  // `String.prototype.{ trimRight, trimEnd }` methods
-  // https://tc39.github.io/ecma262/#sec-string.prototype.trimend
-  end: createMethod(2),
-  // `String.prototype.trim` method
-  // https://tc39.github.io/ecma262/#sec-string.prototype.trim
-  trim: createMethod(3)
-};
-
-
-/***/ }),
-
 /***/ "5a74":
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
@@ -5683,12 +5125,12 @@ var addStylesShadow = __webpack_require__("35d6");
 // EXTERNAL MODULE: ./node_modules/vue-loader/lib/runtime/componentNormalizer.js
 var componentNormalizer = __webpack_require__("2877");
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"bbcda878-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/Comment.vue?vue&type=template&id=d1cd7ce8&shadow
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5465617b-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/Comment.vue?vue&type=template&id=3b9a8b0a&shadow
 var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"halo-comment serif",attrs:{"id":"halo-comment"}},[(_vm.isReply)?_c('comment-editor',{staticClass:"bottom-comment",attrs:{"targetId":_vm.id,"target":_vm.target,"options":_vm.options,"configs":_vm.mergedConfigs}}):_vm._e(),(!_vm.mergedConfigs.autoLoad && !_vm.loaded)?_c('div',{staticClass:"comment-load-button"},[_c('a',{staticClass:"button-load",attrs:{"href":"javascript:void(0)","rel":"nofollow noopener"},on:{"click":_vm.loadComments}},[_vm._v("加载评论")])]):_vm._e(),_c('comment-loading',{directives:[{name:"show",rawName:"v-show",value:(_vm.commentLoading),expression:"commentLoading"}],attrs:{"configs":_vm.mergedConfigs}}),(_vm.comments.length >=1)?_c('ul',{staticClass:"commentwrap"},[_vm._l((_vm.comments),function(comment,index){return [_c('CommentNode',{key:index,attrs:{"targetId":_vm.id,"target":_vm.target,"comment":comment,"options":_vm.options,"configs":_vm.mergedConfigs,"depth":1}})]})],2):_vm._e(),(_vm.loaded && !_vm.commentLoading && _vm.comments.length<=0)?_c('div',{staticClass:"comment-empty"},[_vm._v(_vm._s(_vm.mergedConfigs.notComment || '暂无评论'))]):_vm._e(),(_vm.pagination.pages > 1)?_c('div',{staticClass:"comment-page"},[_c('pagination',{attrs:{"page":_vm.pagination.page,"size":_vm.pagination.size,"total":_vm.pagination.total},on:{"change":_vm.handlePaginationChange}})],1):_vm._e()],1)}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/Comment.vue?vue&type=template&id=d1cd7ce8&shadow
+// CONCATENATED MODULE: ./src/components/Comment.vue?vue&type=template&id=3b9a8b0a&shadow
 
 // EXTERNAL MODULE: ./src/components/index.js + 10 modules
 var components = __webpack_require__("2af9");
@@ -7534,12 +6976,12 @@ var index = {
 
 /* harmony default export */ var vue_lazyload_esm = (index);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"bbcda878-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/plugins/Tips/index.vue?vue&type=template&id=790eaf82&
-var Tipsvue_type_template_id_790eaf82_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{directives:[{name:"show",rawName:"v-show",value:(_vm.show),expression:"show"}],staticClass:"butterBar butterBar-center"},[_c('p',{staticClass:"butterBar-message",domProps:{"innerHTML":_vm._s(_vm.message)}})])}
-var Tipsvue_type_template_id_790eaf82_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5465617b-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/plugins/Tips/index.vue?vue&type=template&id=eda5d6b4&
+var Tipsvue_type_template_id_eda5d6b4_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{directives:[{name:"show",rawName:"v-show",value:(_vm.show),expression:"show"}],staticClass:"butterBar butterBar-center"},[_c('p',{staticClass:"butterBar-message",domProps:{"innerHTML":_vm._s(_vm.message)}})])}
+var Tipsvue_type_template_id_eda5d6b4_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/plugins/Tips/index.vue?vue&type=template&id=790eaf82&
+// CONCATENATED MODULE: ./src/plugins/Tips/index.vue?vue&type=template&id=eda5d6b4&
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/plugins/Tips/index.vue?vue&type=script&lang=js&
 //
@@ -7577,8 +7019,8 @@ var Tipsvue_type_template_id_790eaf82_staticRenderFns = []
 
 var component = Object(componentNormalizer["a" /* default */])(
   plugins_Tipsvue_type_script_lang_js_,
-  Tipsvue_type_template_id_790eaf82_render,
-  Tipsvue_type_template_id_790eaf82_staticRenderFns,
+  Tipsvue_type_template_id_eda5d6b4_render,
+  Tipsvue_type_template_id_eda5d6b4_staticRenderFns,
   false,
   null,
   null,
@@ -7908,33 +7350,6 @@ module.exports = {
   // `String.prototype.at` method
   // https://github.com/mathiasbynens/String.prototype.at
   charAt: createMethod(true)
-};
-
-
-/***/ }),
-
-/***/ "65f0":
-/***/ (function(module, exports, __webpack_require__) {
-
-var isObject = __webpack_require__("861d");
-var isArray = __webpack_require__("e8b5");
-var wellKnownSymbol = __webpack_require__("b622");
-
-var SPECIES = wellKnownSymbol('species');
-
-// `ArraySpeciesCreate` abstract operation
-// https://tc39.github.io/ecma262/#sec-arrayspeciescreate
-module.exports = function (originalArray, length) {
-  var C;
-  if (isArray(originalArray)) {
-    C = originalArray.constructor;
-    // cross-realm fallback
-    if (typeof C == 'function' && (C === Array || isArray(C.prototype))) C = undefined;
-    else if (isObject(C)) {
-      C = C[SPECIES];
-      if (C === null) C = undefined;
-    }
-  } return new (C === undefined ? Array : C)(length === 0 ? 0 : length);
 };
 
 
@@ -8276,52 +7691,10 @@ var TEMPLATE = String(String).split('String');
 
 /***/ }),
 
-/***/ "7156":
-/***/ (function(module, exports, __webpack_require__) {
-
-var isObject = __webpack_require__("861d");
-var setPrototypeOf = __webpack_require__("d2bb");
-
-// makes subclassing work correct for wrapped built-ins
-module.exports = function ($this, dummy, Wrapper) {
-  var NewTarget, NewTargetPrototype;
-  if (
-    // it can work only with native `setPrototypeOf`
-    setPrototypeOf &&
-    // we haven't completely correct pre-ES6 way for getting `new.target`, so use this
-    typeof (NewTarget = dummy.constructor) == 'function' &&
-    NewTarget !== Wrapper &&
-    isObject(NewTargetPrototype = NewTarget.prototype) &&
-    NewTargetPrototype !== Wrapper.prototype
-  ) setPrototypeOf($this, NewTargetPrototype);
-  return $this;
-};
-
-
-/***/ }),
-
 /***/ "7418":
 /***/ (function(module, exports) {
 
 exports.f = Object.getOwnPropertySymbols;
-
-
-/***/ }),
-
-/***/ "746f":
-/***/ (function(module, exports, __webpack_require__) {
-
-var path = __webpack_require__("428f");
-var has = __webpack_require__("5135");
-var wrappedWellKnownSymbolModule = __webpack_require__("e538");
-var defineProperty = __webpack_require__("9bf2").f;
-
-module.exports = function (NAME) {
-  var Symbol = path.Symbol || (path.Symbol = {});
-  if (!has(Symbol, NAME)) defineProperty(Symbol, NAME, {
-    value: wrappedWellKnownSymbolModule.f(NAME)
-  });
-};
 
 
 /***/ }),
@@ -8843,24 +8216,6 @@ module.exports = function buildFullPath(baseURL, requestedURL) {
 
 /***/ }),
 
-/***/ "8418":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var toPrimitive = __webpack_require__("c04e");
-var definePropertyModule = __webpack_require__("9bf2");
-var createPropertyDescriptor = __webpack_require__("5c6c");
-
-module.exports = function (object, key, value) {
-  var propertyKey = toPrimitive(key);
-  if (propertyKey in object) definePropertyModule.f(object, propertyKey, createPropertyDescriptor(0, value));
-  else object[propertyKey] = value;
-};
-
-
-/***/ }),
-
 /***/ "861d":
 /***/ (function(module, exports) {
 
@@ -9234,74 +8589,6 @@ module.exports = isForced;
 
 /***/ }),
 
-/***/ "99af":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var $ = __webpack_require__("23e7");
-var fails = __webpack_require__("d039");
-var isArray = __webpack_require__("e8b5");
-var isObject = __webpack_require__("861d");
-var toObject = __webpack_require__("7b0b");
-var toLength = __webpack_require__("50c4");
-var createProperty = __webpack_require__("8418");
-var arraySpeciesCreate = __webpack_require__("65f0");
-var arrayMethodHasSpeciesSupport = __webpack_require__("1dde");
-var wellKnownSymbol = __webpack_require__("b622");
-var V8_VERSION = __webpack_require__("2d00");
-
-var IS_CONCAT_SPREADABLE = wellKnownSymbol('isConcatSpreadable');
-var MAX_SAFE_INTEGER = 0x1FFFFFFFFFFFFF;
-var MAXIMUM_ALLOWED_INDEX_EXCEEDED = 'Maximum allowed index exceeded';
-
-// We can't use this feature detection in V8 since it causes
-// deoptimization and serious performance degradation
-// https://github.com/zloirock/core-js/issues/679
-var IS_CONCAT_SPREADABLE_SUPPORT = V8_VERSION >= 51 || !fails(function () {
-  var array = [];
-  array[IS_CONCAT_SPREADABLE] = false;
-  return array.concat()[0] !== array;
-});
-
-var SPECIES_SUPPORT = arrayMethodHasSpeciesSupport('concat');
-
-var isConcatSpreadable = function (O) {
-  if (!isObject(O)) return false;
-  var spreadable = O[IS_CONCAT_SPREADABLE];
-  return spreadable !== undefined ? !!spreadable : isArray(O);
-};
-
-var FORCED = !IS_CONCAT_SPREADABLE_SUPPORT || !SPECIES_SUPPORT;
-
-// `Array.prototype.concat` method
-// https://tc39.github.io/ecma262/#sec-array.prototype.concat
-// with adding support of @@isConcatSpreadable and @@species
-$({ target: 'Array', proto: true, forced: FORCED }, {
-  concat: function concat(arg) { // eslint-disable-line no-unused-vars
-    var O = toObject(this);
-    var A = arraySpeciesCreate(O, 0);
-    var n = 0;
-    var i, k, length, len, E;
-    for (i = -1, length = arguments.length; i < length; i++) {
-      E = i === -1 ? O : arguments[i];
-      if (isConcatSpreadable(E)) {
-        len = toLength(E.length);
-        if (n + len > MAX_SAFE_INTEGER) throw TypeError(MAXIMUM_ALLOWED_INDEX_EXCEEDED);
-        for (k = 0; k < len; k++, n++) if (k in E) createProperty(A, n, E[k]);
-      } else {
-        if (n >= MAX_SAFE_INTEGER) throw TypeError(MAXIMUM_ALLOWED_INDEX_EXCEEDED);
-        createProperty(A, n++, E);
-      }
-    }
-    A.length = n;
-    return A;
-  }
-});
-
-
-/***/ }),
-
 /***/ "9a63":
 /***/ (function(module, exports) {
 
@@ -9476,331 +8763,12 @@ exports.BROKEN_CARET = fails(function () {
 
 /***/ }),
 
-/***/ "a4d3":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var $ = __webpack_require__("23e7");
-var global = __webpack_require__("da84");
-var getBuiltIn = __webpack_require__("d066");
-var IS_PURE = __webpack_require__("c430");
-var DESCRIPTORS = __webpack_require__("83ab");
-var NATIVE_SYMBOL = __webpack_require__("4930");
-var USE_SYMBOL_AS_UID = __webpack_require__("fdbf");
-var fails = __webpack_require__("d039");
-var has = __webpack_require__("5135");
-var isArray = __webpack_require__("e8b5");
-var isObject = __webpack_require__("861d");
-var anObject = __webpack_require__("825a");
-var toObject = __webpack_require__("7b0b");
-var toIndexedObject = __webpack_require__("fc6a");
-var toPrimitive = __webpack_require__("c04e");
-var createPropertyDescriptor = __webpack_require__("5c6c");
-var nativeObjectCreate = __webpack_require__("7c73");
-var objectKeys = __webpack_require__("df75");
-var getOwnPropertyNamesModule = __webpack_require__("241c");
-var getOwnPropertyNamesExternal = __webpack_require__("057f");
-var getOwnPropertySymbolsModule = __webpack_require__("7418");
-var getOwnPropertyDescriptorModule = __webpack_require__("06cf");
-var definePropertyModule = __webpack_require__("9bf2");
-var propertyIsEnumerableModule = __webpack_require__("d1e7");
-var createNonEnumerableProperty = __webpack_require__("9112");
-var redefine = __webpack_require__("6eeb");
-var shared = __webpack_require__("5692");
-var sharedKey = __webpack_require__("f772");
-var hiddenKeys = __webpack_require__("d012");
-var uid = __webpack_require__("90e3");
-var wellKnownSymbol = __webpack_require__("b622");
-var wrappedWellKnownSymbolModule = __webpack_require__("e538");
-var defineWellKnownSymbol = __webpack_require__("746f");
-var setToStringTag = __webpack_require__("d44e");
-var InternalStateModule = __webpack_require__("69f3");
-var $forEach = __webpack_require__("b727").forEach;
-
-var HIDDEN = sharedKey('hidden');
-var SYMBOL = 'Symbol';
-var PROTOTYPE = 'prototype';
-var TO_PRIMITIVE = wellKnownSymbol('toPrimitive');
-var setInternalState = InternalStateModule.set;
-var getInternalState = InternalStateModule.getterFor(SYMBOL);
-var ObjectPrototype = Object[PROTOTYPE];
-var $Symbol = global.Symbol;
-var $stringify = getBuiltIn('JSON', 'stringify');
-var nativeGetOwnPropertyDescriptor = getOwnPropertyDescriptorModule.f;
-var nativeDefineProperty = definePropertyModule.f;
-var nativeGetOwnPropertyNames = getOwnPropertyNamesExternal.f;
-var nativePropertyIsEnumerable = propertyIsEnumerableModule.f;
-var AllSymbols = shared('symbols');
-var ObjectPrototypeSymbols = shared('op-symbols');
-var StringToSymbolRegistry = shared('string-to-symbol-registry');
-var SymbolToStringRegistry = shared('symbol-to-string-registry');
-var WellKnownSymbolsStore = shared('wks');
-var QObject = global.QObject;
-// Don't use setters in Qt Script, https://github.com/zloirock/core-js/issues/173
-var USE_SETTER = !QObject || !QObject[PROTOTYPE] || !QObject[PROTOTYPE].findChild;
-
-// fallback for old Android, https://code.google.com/p/v8/issues/detail?id=687
-var setSymbolDescriptor = DESCRIPTORS && fails(function () {
-  return nativeObjectCreate(nativeDefineProperty({}, 'a', {
-    get: function () { return nativeDefineProperty(this, 'a', { value: 7 }).a; }
-  })).a != 7;
-}) ? function (O, P, Attributes) {
-  var ObjectPrototypeDescriptor = nativeGetOwnPropertyDescriptor(ObjectPrototype, P);
-  if (ObjectPrototypeDescriptor) delete ObjectPrototype[P];
-  nativeDefineProperty(O, P, Attributes);
-  if (ObjectPrototypeDescriptor && O !== ObjectPrototype) {
-    nativeDefineProperty(ObjectPrototype, P, ObjectPrototypeDescriptor);
-  }
-} : nativeDefineProperty;
-
-var wrap = function (tag, description) {
-  var symbol = AllSymbols[tag] = nativeObjectCreate($Symbol[PROTOTYPE]);
-  setInternalState(symbol, {
-    type: SYMBOL,
-    tag: tag,
-    description: description
-  });
-  if (!DESCRIPTORS) symbol.description = description;
-  return symbol;
-};
-
-var isSymbol = USE_SYMBOL_AS_UID ? function (it) {
-  return typeof it == 'symbol';
-} : function (it) {
-  return Object(it) instanceof $Symbol;
-};
-
-var $defineProperty = function defineProperty(O, P, Attributes) {
-  if (O === ObjectPrototype) $defineProperty(ObjectPrototypeSymbols, P, Attributes);
-  anObject(O);
-  var key = toPrimitive(P, true);
-  anObject(Attributes);
-  if (has(AllSymbols, key)) {
-    if (!Attributes.enumerable) {
-      if (!has(O, HIDDEN)) nativeDefineProperty(O, HIDDEN, createPropertyDescriptor(1, {}));
-      O[HIDDEN][key] = true;
-    } else {
-      if (has(O, HIDDEN) && O[HIDDEN][key]) O[HIDDEN][key] = false;
-      Attributes = nativeObjectCreate(Attributes, { enumerable: createPropertyDescriptor(0, false) });
-    } return setSymbolDescriptor(O, key, Attributes);
-  } return nativeDefineProperty(O, key, Attributes);
-};
-
-var $defineProperties = function defineProperties(O, Properties) {
-  anObject(O);
-  var properties = toIndexedObject(Properties);
-  var keys = objectKeys(properties).concat($getOwnPropertySymbols(properties));
-  $forEach(keys, function (key) {
-    if (!DESCRIPTORS || $propertyIsEnumerable.call(properties, key)) $defineProperty(O, key, properties[key]);
-  });
-  return O;
-};
-
-var $create = function create(O, Properties) {
-  return Properties === undefined ? nativeObjectCreate(O) : $defineProperties(nativeObjectCreate(O), Properties);
-};
-
-var $propertyIsEnumerable = function propertyIsEnumerable(V) {
-  var P = toPrimitive(V, true);
-  var enumerable = nativePropertyIsEnumerable.call(this, P);
-  if (this === ObjectPrototype && has(AllSymbols, P) && !has(ObjectPrototypeSymbols, P)) return false;
-  return enumerable || !has(this, P) || !has(AllSymbols, P) || has(this, HIDDEN) && this[HIDDEN][P] ? enumerable : true;
-};
-
-var $getOwnPropertyDescriptor = function getOwnPropertyDescriptor(O, P) {
-  var it = toIndexedObject(O);
-  var key = toPrimitive(P, true);
-  if (it === ObjectPrototype && has(AllSymbols, key) && !has(ObjectPrototypeSymbols, key)) return;
-  var descriptor = nativeGetOwnPropertyDescriptor(it, key);
-  if (descriptor && has(AllSymbols, key) && !(has(it, HIDDEN) && it[HIDDEN][key])) {
-    descriptor.enumerable = true;
-  }
-  return descriptor;
-};
-
-var $getOwnPropertyNames = function getOwnPropertyNames(O) {
-  var names = nativeGetOwnPropertyNames(toIndexedObject(O));
-  var result = [];
-  $forEach(names, function (key) {
-    if (!has(AllSymbols, key) && !has(hiddenKeys, key)) result.push(key);
-  });
-  return result;
-};
-
-var $getOwnPropertySymbols = function getOwnPropertySymbols(O) {
-  var IS_OBJECT_PROTOTYPE = O === ObjectPrototype;
-  var names = nativeGetOwnPropertyNames(IS_OBJECT_PROTOTYPE ? ObjectPrototypeSymbols : toIndexedObject(O));
-  var result = [];
-  $forEach(names, function (key) {
-    if (has(AllSymbols, key) && (!IS_OBJECT_PROTOTYPE || has(ObjectPrototype, key))) {
-      result.push(AllSymbols[key]);
-    }
-  });
-  return result;
-};
-
-// `Symbol` constructor
-// https://tc39.github.io/ecma262/#sec-symbol-constructor
-if (!NATIVE_SYMBOL) {
-  $Symbol = function Symbol() {
-    if (this instanceof $Symbol) throw TypeError('Symbol is not a constructor');
-    var description = !arguments.length || arguments[0] === undefined ? undefined : String(arguments[0]);
-    var tag = uid(description);
-    var setter = function (value) {
-      if (this === ObjectPrototype) setter.call(ObjectPrototypeSymbols, value);
-      if (has(this, HIDDEN) && has(this[HIDDEN], tag)) this[HIDDEN][tag] = false;
-      setSymbolDescriptor(this, tag, createPropertyDescriptor(1, value));
-    };
-    if (DESCRIPTORS && USE_SETTER) setSymbolDescriptor(ObjectPrototype, tag, { configurable: true, set: setter });
-    return wrap(tag, description);
-  };
-
-  redefine($Symbol[PROTOTYPE], 'toString', function toString() {
-    return getInternalState(this).tag;
-  });
-
-  redefine($Symbol, 'withoutSetter', function (description) {
-    return wrap(uid(description), description);
-  });
-
-  propertyIsEnumerableModule.f = $propertyIsEnumerable;
-  definePropertyModule.f = $defineProperty;
-  getOwnPropertyDescriptorModule.f = $getOwnPropertyDescriptor;
-  getOwnPropertyNamesModule.f = getOwnPropertyNamesExternal.f = $getOwnPropertyNames;
-  getOwnPropertySymbolsModule.f = $getOwnPropertySymbols;
-
-  wrappedWellKnownSymbolModule.f = function (name) {
-    return wrap(wellKnownSymbol(name), name);
-  };
-
-  if (DESCRIPTORS) {
-    // https://github.com/tc39/proposal-Symbol-description
-    nativeDefineProperty($Symbol[PROTOTYPE], 'description', {
-      configurable: true,
-      get: function description() {
-        return getInternalState(this).description;
-      }
-    });
-    if (!IS_PURE) {
-      redefine(ObjectPrototype, 'propertyIsEnumerable', $propertyIsEnumerable, { unsafe: true });
-    }
-  }
-}
-
-$({ global: true, wrap: true, forced: !NATIVE_SYMBOL, sham: !NATIVE_SYMBOL }, {
-  Symbol: $Symbol
-});
-
-$forEach(objectKeys(WellKnownSymbolsStore), function (name) {
-  defineWellKnownSymbol(name);
-});
-
-$({ target: SYMBOL, stat: true, forced: !NATIVE_SYMBOL }, {
-  // `Symbol.for` method
-  // https://tc39.github.io/ecma262/#sec-symbol.for
-  'for': function (key) {
-    var string = String(key);
-    if (has(StringToSymbolRegistry, string)) return StringToSymbolRegistry[string];
-    var symbol = $Symbol(string);
-    StringToSymbolRegistry[string] = symbol;
-    SymbolToStringRegistry[symbol] = string;
-    return symbol;
-  },
-  // `Symbol.keyFor` method
-  // https://tc39.github.io/ecma262/#sec-symbol.keyfor
-  keyFor: function keyFor(sym) {
-    if (!isSymbol(sym)) throw TypeError(sym + ' is not a symbol');
-    if (has(SymbolToStringRegistry, sym)) return SymbolToStringRegistry[sym];
-  },
-  useSetter: function () { USE_SETTER = true; },
-  useSimple: function () { USE_SETTER = false; }
-});
-
-$({ target: 'Object', stat: true, forced: !NATIVE_SYMBOL, sham: !DESCRIPTORS }, {
-  // `Object.create` method
-  // https://tc39.github.io/ecma262/#sec-object.create
-  create: $create,
-  // `Object.defineProperty` method
-  // https://tc39.github.io/ecma262/#sec-object.defineproperty
-  defineProperty: $defineProperty,
-  // `Object.defineProperties` method
-  // https://tc39.github.io/ecma262/#sec-object.defineproperties
-  defineProperties: $defineProperties,
-  // `Object.getOwnPropertyDescriptor` method
-  // https://tc39.github.io/ecma262/#sec-object.getownpropertydescriptors
-  getOwnPropertyDescriptor: $getOwnPropertyDescriptor
-});
-
-$({ target: 'Object', stat: true, forced: !NATIVE_SYMBOL }, {
-  // `Object.getOwnPropertyNames` method
-  // https://tc39.github.io/ecma262/#sec-object.getownpropertynames
-  getOwnPropertyNames: $getOwnPropertyNames,
-  // `Object.getOwnPropertySymbols` method
-  // https://tc39.github.io/ecma262/#sec-object.getownpropertysymbols
-  getOwnPropertySymbols: $getOwnPropertySymbols
-});
-
-// Chrome 38 and 39 `Object.getOwnPropertySymbols` fails on primitives
-// https://bugs.chromium.org/p/v8/issues/detail?id=3443
-$({ target: 'Object', stat: true, forced: fails(function () { getOwnPropertySymbolsModule.f(1); }) }, {
-  getOwnPropertySymbols: function getOwnPropertySymbols(it) {
-    return getOwnPropertySymbolsModule.f(toObject(it));
-  }
-});
-
-// `JSON.stringify` method behavior with symbols
-// https://tc39.github.io/ecma262/#sec-json.stringify
-if ($stringify) {
-  var FORCED_JSON_STRINGIFY = !NATIVE_SYMBOL || fails(function () {
-    var symbol = $Symbol();
-    // MS Edge converts symbol values to JSON as {}
-    return $stringify([symbol]) != '[null]'
-      // WebKit converts symbol values to JSON as null
-      || $stringify({ a: symbol }) != '{}'
-      // V8 throws on boxed symbols
-      || $stringify(Object(symbol)) != '{}';
-  });
-
-  $({ target: 'JSON', stat: true, forced: FORCED_JSON_STRINGIFY }, {
-    // eslint-disable-next-line no-unused-vars
-    stringify: function stringify(it, replacer, space) {
-      var args = [it];
-      var index = 1;
-      var $replacer;
-      while (arguments.length > index) args.push(arguments[index++]);
-      $replacer = replacer;
-      if (!isObject(replacer) && it === undefined || isSymbol(it)) return; // IE8 returns string on undefined
-      if (!isArray(replacer)) replacer = function (key, value) {
-        if (typeof $replacer == 'function') value = $replacer.call(this, key, value);
-        if (!isSymbol(value)) return value;
-      };
-      args[1] = replacer;
-      return $stringify.apply(null, args);
-    }
-  });
-}
-
-// `Symbol.prototype[@@toPrimitive]` method
-// https://tc39.github.io/ecma262/#sec-symbol.prototype-@@toprimitive
-if (!$Symbol[PROTOTYPE][TO_PRIMITIVE]) {
-  createNonEnumerableProperty($Symbol[PROTOTYPE], TO_PRIMITIVE, $Symbol[PROTOTYPE].valueOf);
-}
-// `Symbol.prototype[@@toStringTag]` property
-// https://tc39.github.io/ecma262/#sec-symbol.prototype-@@tostringtag
-setToStringTag($Symbol, SYMBOL);
-
-hiddenKeys[HIDDEN] = true;
-
-
-/***/ }),
-
 /***/ "a571":
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
  * marked - a markdown parser
- * Copyright (c) 2011-2020, Christopher Jeffrey. (MIT Licensed)
+ * Copyright (c) 2011-2021, Christopher Jeffrey. (MIT Licensed)
  * https://github.com/markedjs/marked
  */
 
@@ -12046,7 +11014,7 @@ hiddenKeys[HIDDEN] = true;
         switch (token.type) {
           case 'bilibiliEmoji':
             {
-              out += renderer.bilibiliEmoji(token.text);
+              out += renderer.bilibiliEmoji ? renderer.bilibiliEmoji(token.text) : token.text;
               break;
             }
 
@@ -12058,7 +11026,7 @@ hiddenKeys[HIDDEN] = true;
 
           case 'codeEmoji':
             {
-              out += renderer.codeEmoji(token.text);
+              out += renderer.codeEmoji ? renderer.codeEmoji(token.text) : token.text;
               break;
             }
 
@@ -12413,24 +11381,6 @@ hiddenKeys[HIDDEN] = true;
 
 /***/ }),
 
-/***/ "a640":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var fails = __webpack_require__("d039");
-
-module.exports = function (METHOD_NAME, argument) {
-  var method = [][METHOD_NAME];
-  return !!method && fails(function () {
-    // eslint-disable-next-line no-useless-call,no-throw-literal
-    method.call(null, argument || function () { throw 1; }, 1);
-  });
-};
-
-
-/***/ }),
-
 /***/ "a691":
 /***/ (function(module, exports) {
 
@@ -12455,92 +11405,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _node_modules_vue_style_loader_index_js_ref_8_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_3_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_4_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_Comment_vue_vue_type_style_index_0_lang_scss_shadow__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_vue_style_loader_index_js_ref_8_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_3_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_4_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_Comment_vue_vue_type_style_index_0_lang_scss_shadow__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony reexport (unknown) */ for(var __WEBPACK_IMPORT_KEY__ in _node_modules_vue_style_loader_index_js_ref_8_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_3_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_4_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_Comment_vue_vue_type_style_index_0_lang_scss_shadow__WEBPACK_IMPORTED_MODULE_0__) if(["default"].indexOf(__WEBPACK_IMPORT_KEY__) < 0) (function(key) { __webpack_require__.d(__webpack_exports__, key, function() { return _node_modules_vue_style_loader_index_js_ref_8_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_3_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_4_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_Comment_vue_vue_type_style_index_0_lang_scss_shadow__WEBPACK_IMPORTED_MODULE_0__[key]; }) }(__WEBPACK_IMPORT_KEY__));
  /* harmony default export */ __webpack_exports__["default"] = (_node_modules_vue_style_loader_index_js_ref_8_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_3_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_4_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_Comment_vue_vue_type_style_index_0_lang_scss_shadow__WEBPACK_IMPORTED_MODULE_0___default.a); 
-
-/***/ }),
-
-/***/ "a9e3":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var DESCRIPTORS = __webpack_require__("83ab");
-var global = __webpack_require__("da84");
-var isForced = __webpack_require__("94ca");
-var redefine = __webpack_require__("6eeb");
-var has = __webpack_require__("5135");
-var classof = __webpack_require__("c6b6");
-var inheritIfRequired = __webpack_require__("7156");
-var toPrimitive = __webpack_require__("c04e");
-var fails = __webpack_require__("d039");
-var create = __webpack_require__("7c73");
-var getOwnPropertyNames = __webpack_require__("241c").f;
-var getOwnPropertyDescriptor = __webpack_require__("06cf").f;
-var defineProperty = __webpack_require__("9bf2").f;
-var trim = __webpack_require__("58a8").trim;
-
-var NUMBER = 'Number';
-var NativeNumber = global[NUMBER];
-var NumberPrototype = NativeNumber.prototype;
-
-// Opera ~12 has broken Object#toString
-var BROKEN_CLASSOF = classof(create(NumberPrototype)) == NUMBER;
-
-// `ToNumber` abstract operation
-// https://tc39.github.io/ecma262/#sec-tonumber
-var toNumber = function (argument) {
-  var it = toPrimitive(argument, false);
-  var first, third, radix, maxCode, digits, length, index, code;
-  if (typeof it == 'string' && it.length > 2) {
-    it = trim(it);
-    first = it.charCodeAt(0);
-    if (first === 43 || first === 45) {
-      third = it.charCodeAt(2);
-      if (third === 88 || third === 120) return NaN; // Number('+0x1') should be NaN, old V8 fix
-    } else if (first === 48) {
-      switch (it.charCodeAt(1)) {
-        case 66: case 98: radix = 2; maxCode = 49; break; // fast equal of /^0b[01]+$/i
-        case 79: case 111: radix = 8; maxCode = 55; break; // fast equal of /^0o[0-7]+$/i
-        default: return +it;
-      }
-      digits = it.slice(2);
-      length = digits.length;
-      for (index = 0; index < length; index++) {
-        code = digits.charCodeAt(index);
-        // parseInt parses a string to a first unavailable symbol
-        // but ToNumber should return NaN if a string contains unavailable symbols
-        if (code < 48 || code > maxCode) return NaN;
-      } return parseInt(digits, radix);
-    }
-  } return +it;
-};
-
-// `Number` constructor
-// https://tc39.github.io/ecma262/#sec-number-constructor
-if (isForced(NUMBER, !NativeNumber(' 0o1') || !NativeNumber('0b1') || NativeNumber('+0x1'))) {
-  var NumberWrapper = function Number(value) {
-    var it = arguments.length < 1 ? 0 : value;
-    var dummy = this;
-    return dummy instanceof NumberWrapper
-      // check on 1..constructor(foo) case
-      && (BROKEN_CLASSOF ? fails(function () { NumberPrototype.valueOf.call(dummy); }) : classof(dummy) != NUMBER)
-        ? inheritIfRequired(new NativeNumber(toNumber(it)), dummy, NumberWrapper) : toNumber(it);
-  };
-  for (var keys = DESCRIPTORS ? getOwnPropertyNames(NativeNumber) : (
-    // ES3:
-    'MAX_VALUE,MIN_VALUE,NaN,NEGATIVE_INFINITY,POSITIVE_INFINITY,' +
-    // ES2015 (in case, if modules with ES2015 Number statics required before):
-    'EPSILON,isFinite,isInteger,isNaN,isSafeInteger,MAX_SAFE_INTEGER,' +
-    'MIN_SAFE_INTEGER,parseFloat,parseInt,isInteger'
-  ).split(','), j = 0, key; keys.length > j; j++) {
-    if (has(NativeNumber, key = keys[j]) && !has(NumberWrapper, key)) {
-      defineProperty(NumberWrapper, key, getOwnPropertyDescriptor(NativeNumber, key));
-    }
-  }
-  NumberWrapper.prototype = NumberPrototype;
-  NumberPrototype.constructor = NumberWrapper;
-  redefine(global, NUMBER, NumberWrapper);
-}
-
 
 /***/ }),
 
@@ -12578,40 +11442,6 @@ module.exports = function () {
   if (that.unicode) result += 'u';
   if (that.sticky) result += 'y';
   return result;
-};
-
-
-/***/ }),
-
-/***/ "ae40":
-/***/ (function(module, exports, __webpack_require__) {
-
-var DESCRIPTORS = __webpack_require__("83ab");
-var fails = __webpack_require__("d039");
-var has = __webpack_require__("5135");
-
-var defineProperty = Object.defineProperty;
-var cache = {};
-
-var thrower = function (it) { throw it; };
-
-module.exports = function (METHOD_NAME, options) {
-  if (has(cache, METHOD_NAME)) return cache[METHOD_NAME];
-  if (!options) options = {};
-  var method = [][METHOD_NAME];
-  var ACCESSORS = has(options, 'ACCESSORS') ? options.ACCESSORS : false;
-  var argument0 = has(options, 0) ? options[0] : thrower;
-  var argument1 = has(options, 1) ? options[1] : undefined;
-
-  return cache[METHOD_NAME] = !!method && !fails(function () {
-    if (ACCESSORS && !DESCRIPTORS) return true;
-    var O = { length: -1 };
-
-    if (ACCESSORS) defineProperty(O, 1, { enumerable: true, get: thrower });
-    else O[1] = 1;
-
-    method.call(O, argument0, argument1);
-  });
 };
 
 
@@ -12658,52 +11488,6 @@ module.exports = {
   IteratorPrototype: IteratorPrototype,
   BUGGY_SAFARI_ITERATORS: BUGGY_SAFARI_ITERATORS
 };
-
-
-/***/ }),
-
-/***/ "b041":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var TO_STRING_TAG_SUPPORT = __webpack_require__("00ee");
-var classof = __webpack_require__("f5df");
-
-// `Object.prototype.toString` method implementation
-// https://tc39.github.io/ecma262/#sec-object.prototype.tostring
-module.exports = TO_STRING_TAG_SUPPORT ? {}.toString : function toString() {
-  return '[object ' + classof(this) + ']';
-};
-
-
-/***/ }),
-
-/***/ "b0c0":
-/***/ (function(module, exports, __webpack_require__) {
-
-var DESCRIPTORS = __webpack_require__("83ab");
-var defineProperty = __webpack_require__("9bf2").f;
-
-var FunctionPrototype = Function.prototype;
-var FunctionPrototypeToString = FunctionPrototype.toString;
-var nameRE = /^\s*function ([^ (]*)/;
-var NAME = 'name';
-
-// Function instances `.name` property
-// https://tc39.github.io/ecma262/#sec-function-instances-name
-if (DESCRIPTORS && !(NAME in FunctionPrototype)) {
-  defineProperty(FunctionPrototype, NAME, {
-    configurable: true,
-    get: function () {
-      try {
-        return FunctionPrototypeToString.call(this).match(nameRE)[1];
-      } catch (error) {
-        return '';
-      }
-    }
-  });
-}
 
 
 /***/ }),
@@ -13044,99 +11828,6 @@ module.exports = function (name) {
     if (NATIVE_SYMBOL && has(Symbol, name)) WellKnownSymbolsStore[name] = Symbol[name];
     else WellKnownSymbolsStore[name] = createWellKnownSymbol('Symbol.' + name);
   } return WellKnownSymbolsStore[name];
-};
-
-
-/***/ }),
-
-/***/ "b64b":
-/***/ (function(module, exports, __webpack_require__) {
-
-var $ = __webpack_require__("23e7");
-var toObject = __webpack_require__("7b0b");
-var nativeKeys = __webpack_require__("df75");
-var fails = __webpack_require__("d039");
-
-var FAILS_ON_PRIMITIVES = fails(function () { nativeKeys(1); });
-
-// `Object.keys` method
-// https://tc39.github.io/ecma262/#sec-object.keys
-$({ target: 'Object', stat: true, forced: FAILS_ON_PRIMITIVES }, {
-  keys: function keys(it) {
-    return nativeKeys(toObject(it));
-  }
-});
-
-
-/***/ }),
-
-/***/ "b727":
-/***/ (function(module, exports, __webpack_require__) {
-
-var bind = __webpack_require__("0366");
-var IndexedObject = __webpack_require__("44ad");
-var toObject = __webpack_require__("7b0b");
-var toLength = __webpack_require__("50c4");
-var arraySpeciesCreate = __webpack_require__("65f0");
-
-var push = [].push;
-
-// `Array.prototype.{ forEach, map, filter, some, every, find, findIndex }` methods implementation
-var createMethod = function (TYPE) {
-  var IS_MAP = TYPE == 1;
-  var IS_FILTER = TYPE == 2;
-  var IS_SOME = TYPE == 3;
-  var IS_EVERY = TYPE == 4;
-  var IS_FIND_INDEX = TYPE == 6;
-  var NO_HOLES = TYPE == 5 || IS_FIND_INDEX;
-  return function ($this, callbackfn, that, specificCreate) {
-    var O = toObject($this);
-    var self = IndexedObject(O);
-    var boundFunction = bind(callbackfn, that, 3);
-    var length = toLength(self.length);
-    var index = 0;
-    var create = specificCreate || arraySpeciesCreate;
-    var target = IS_MAP ? create($this, length) : IS_FILTER ? create($this, 0) : undefined;
-    var value, result;
-    for (;length > index; index++) if (NO_HOLES || index in self) {
-      value = self[index];
-      result = boundFunction(value, index, O);
-      if (TYPE) {
-        if (IS_MAP) target[index] = result; // map
-        else if (result) switch (TYPE) {
-          case 3: return true;              // some
-          case 5: return value;             // find
-          case 6: return index;             // findIndex
-          case 2: push.call(target, value); // filter
-        } else if (IS_EVERY) return false;  // every
-      }
-    }
-    return IS_FIND_INDEX ? -1 : IS_SOME || IS_EVERY ? IS_EVERY : target;
-  };
-};
-
-module.exports = {
-  // `Array.prototype.forEach` method
-  // https://tc39.github.io/ecma262/#sec-array.prototype.foreach
-  forEach: createMethod(0),
-  // `Array.prototype.map` method
-  // https://tc39.github.io/ecma262/#sec-array.prototype.map
-  map: createMethod(1),
-  // `Array.prototype.filter` method
-  // https://tc39.github.io/ecma262/#sec-array.prototype.filter
-  filter: createMethod(2),
-  // `Array.prototype.some` method
-  // https://tc39.github.io/ecma262/#sec-array.prototype.some
-  some: createMethod(3),
-  // `Array.prototype.every` method
-  // https://tc39.github.io/ecma262/#sec-array.prototype.every
-  every: createMethod(4),
-  // `Array.prototype.find` method
-  // https://tc39.github.io/ecma262/#sec-array.prototype.find
-  find: createMethod(5),
-  // `Array.prototype.findIndex` method
-  // https://tc39.github.io/ecma262/#sec-array.prototype.findIndex
-  findIndex: createMethod(6)
 };
 
 
@@ -13714,36 +12405,6 @@ module.exports = g;
 
 /***/ }),
 
-/***/ "c975":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var $ = __webpack_require__("23e7");
-var $indexOf = __webpack_require__("4d64").indexOf;
-var arrayMethodIsStrict = __webpack_require__("a640");
-var arrayMethodUsesToLength = __webpack_require__("ae40");
-
-var nativeIndexOf = [].indexOf;
-
-var NEGATIVE_ZERO = !!nativeIndexOf && 1 / [1].indexOf(1, -0) < 0;
-var STRICT_METHOD = arrayMethodIsStrict('indexOf');
-var USES_TO_LENGTH = arrayMethodUsesToLength('indexOf', { ACCESSORS: true, 1: 0 });
-
-// `Array.prototype.indexOf` method
-// https://tc39.github.io/ecma262/#sec-array.prototype.indexof
-$({ target: 'Array', proto: true, forced: NEGATIVE_ZERO || !STRICT_METHOD || !USES_TO_LENGTH }, {
-  indexOf: function indexOf(searchElement /* , fromIndex = 0 */) {
-    return NEGATIVE_ZERO
-      // convert -0 to +0
-      ? nativeIndexOf.apply(this, arguments) || 0
-      : $indexOf(this, searchElement, arguments.length > 1 ? arguments[1] : undefined);
-  }
-});
-
-
-/***/ }),
-
 /***/ "ca00":
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
@@ -14129,22 +12790,6 @@ module.exports = Object.setPrototypeOf || ('__proto__' in {} ? function () {
 
 /***/ }),
 
-/***/ "d3b7":
-/***/ (function(module, exports, __webpack_require__) {
-
-var TO_STRING_TAG_SUPPORT = __webpack_require__("00ee");
-var redefine = __webpack_require__("6eeb");
-var toString = __webpack_require__("b041");
-
-// `Object.prototype.toString` method
-// https://tc39.github.io/ecma262/#sec-object.prototype.tostring
-if (!TO_STRING_TAG_SUPPORT) {
-  redefine(Object.prototype, 'toString', toString, { unsafe: true });
-}
-
-
-/***/ }),
-
 /***/ "d44e":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -14401,37 +13046,6 @@ module.exports =
   Function('return this')();
 
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__("c8ba")))
-
-/***/ }),
-
-/***/ "dbb4":
-/***/ (function(module, exports, __webpack_require__) {
-
-var $ = __webpack_require__("23e7");
-var DESCRIPTORS = __webpack_require__("83ab");
-var ownKeys = __webpack_require__("56ef");
-var toIndexedObject = __webpack_require__("fc6a");
-var getOwnPropertyDescriptorModule = __webpack_require__("06cf");
-var createProperty = __webpack_require__("8418");
-
-// `Object.getOwnPropertyDescriptors` method
-// https://tc39.github.io/ecma262/#sec-object.getownpropertydescriptors
-$({ target: 'Object', stat: true, sham: !DESCRIPTORS }, {
-  getOwnPropertyDescriptors: function getOwnPropertyDescriptors(object) {
-    var O = toIndexedObject(object);
-    var getOwnPropertyDescriptor = getOwnPropertyDescriptorModule.f;
-    var keys = ownKeys(O);
-    var result = {};
-    var index = 0;
-    var key, descriptor;
-    while (keys.length > index) {
-      descriptor = getOwnPropertyDescriptor(O, key = keys[index++]);
-      if (descriptor !== undefined) createProperty(result, key, descriptor);
-    }
-    return result;
-  }
-});
-
 
 /***/ }),
 
@@ -14899,39 +13513,6 @@ addToUnscopables('entries');
 
 /***/ }),
 
-/***/ "e439":
-/***/ (function(module, exports, __webpack_require__) {
-
-var $ = __webpack_require__("23e7");
-var fails = __webpack_require__("d039");
-var toIndexedObject = __webpack_require__("fc6a");
-var nativeGetOwnPropertyDescriptor = __webpack_require__("06cf").f;
-var DESCRIPTORS = __webpack_require__("83ab");
-
-var FAILS_ON_PRIMITIVES = fails(function () { nativeGetOwnPropertyDescriptor(1); });
-var FORCED = !DESCRIPTORS || FAILS_ON_PRIMITIVES;
-
-// `Object.getOwnPropertyDescriptor` method
-// https://tc39.github.io/ecma262/#sec-object.getownpropertydescriptor
-$({ target: 'Object', stat: true, forced: FORCED, sham: !DESCRIPTORS }, {
-  getOwnPropertyDescriptor: function getOwnPropertyDescriptor(it, key) {
-    return nativeGetOwnPropertyDescriptor(toIndexedObject(it), key);
-  }
-});
-
-
-/***/ }),
-
-/***/ "e538":
-/***/ (function(module, exports, __webpack_require__) {
-
-var wellKnownSymbol = __webpack_require__("b622");
-
-exports.f = wellKnownSymbol;
-
-
-/***/ }),
-
 /***/ "e64f":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -14985,20 +13566,6 @@ module.exports = function (target, source) {
     var key = keys[i];
     if (!has(target, key)) defineProperty(target, key, getOwnPropertyDescriptor(source, key));
   }
-};
-
-
-/***/ }),
-
-/***/ "e8b5":
-/***/ (function(module, exports, __webpack_require__) {
-
-var classof = __webpack_require__("c6b6");
-
-// `IsArray` abstract operation
-// https://tc39.github.io/ecma262/#sec-isarray
-module.exports = Array.isArray || function isArray(arg) {
-  return classof(arg) == 'Array';
 };
 
 
@@ -15243,7 +13810,9 @@ function renderedEmojiHtml(html) {
     let emojiName = emotions[i].getAttribute("data-icon");
 
     for (let j = 0; j < emojiData["default"].length; j++) {
-      if (emojiData["default"][j]["name"] === emojiName) {
+      const emoji = emojiData["default"][j];
+
+      if (emoji.style && emoji["name"] === emojiName) {
         let emoji = emojiData["default"][j];
         let img = emotions[i].getElementsByClassName("img")[0];
         let dataStyle = "";
@@ -15375,39 +13944,6 @@ module.exports = defineProperties;
 
 /***/ }),
 
-/***/ "f5df":
-/***/ (function(module, exports, __webpack_require__) {
-
-var TO_STRING_TAG_SUPPORT = __webpack_require__("00ee");
-var classofRaw = __webpack_require__("c6b6");
-var wellKnownSymbol = __webpack_require__("b622");
-
-var TO_STRING_TAG = wellKnownSymbol('toStringTag');
-// ES3 wrong here
-var CORRECT_ARGUMENTS = classofRaw(function () { return arguments; }()) == 'Arguments';
-
-// fallback for IE11 Script Access Denied error
-var tryGet = function (it, key) {
-  try {
-    return it[key];
-  } catch (error) { /* empty */ }
-};
-
-// getting tag from ES6+ `Object.prototype.toString`
-module.exports = TO_STRING_TAG_SUPPORT ? classofRaw : function (it) {
-  var O, tag, result;
-  return it === undefined ? 'Undefined' : it === null ? 'Null'
-    // @@toStringTag case
-    : typeof (tag = tryGet(O = Object(it), TO_STRING_TAG)) == 'string' ? tag
-    // builtinTag case
-    : CORRECT_ARGUMENTS ? classofRaw(O)
-    // ES3 arguments fallback
-    : (result = classofRaw(O)) == 'Object' && typeof O.callee == 'function' ? 'Arguments' : result;
-};
-
-
-/***/ }),
-
 /***/ "f6b4":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -15490,27 +14026,12 @@ module.exports = function (key) {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"bbcda878-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/CommentNode.vue?vue&type=template&id=2051dab4&
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5465617b-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/CommentNode.vue?vue&type=template&id=085067ed&
 var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('li',{staticClass:"comment",class:_vm.commentClass,attrs:{"id":'comment-'+_vm.comment.id,"itemtype":"http://schema.org/Comment","itemprop":"comment"}},[_c('div',{staticClass:"contents"},[_c('div',{staticClass:"main shadow"},[_c('div',{staticClass:"profile"},[_c('a',{attrs:{"href":_vm.comment.authorUrl,"rel":"nofollow","target":"_blank"}},[_c('img',{directives:[{name:"lazy",rawName:"v-lazy",value:(_vm.avatar),expression:"avatar"}],staticClass:"avatar",attrs:{"alt":_vm.comment.author,"height":"80","width":"80"}})])]),_c('div',{staticClass:"commentinfo"},[_c('section',{staticClass:"commeta"},[_c('div',{staticClass:"left"},[_c('h4',{staticClass:"author"},[_c('a',{attrs:{"href":_vm.comment.authorUrl,"rel":"nofollow","target":"_blank"}},[_c('img',{staticClass:"avatar",attrs:{"alt":_vm.comment.author,"src":_vm.avatar,"height":"24","width":"24"}}),(_vm.comment.isAdmin)?_c('span',{staticClass:"bb-comment isauthor",attrs:{"title":"博主"}},[_vm._v("博主")]):_vm._e(),_vm._v(" "+_vm._s(_vm.comment.author)+" ")])])]),_c('a',{staticClass:"comment-reply-link",style:(_vm.editing?'display:block;':''),attrs:{"rel":"nofollow","onclick":"return false;","href":"javascript:void(0);"},on:{"click":_vm.handleReplyClick}},[_vm._v("Reply")]),_c('div',{staticClass:"right"},[_c('div',{staticClass:"info"},[_c('time',{staticClass:"comment-time",attrs:{"itemprop":"datePublished","datetime":_vm.comment.createTime}},[_vm._v("发布于 "+_vm._s(_vm.createTimeAgo))]),(_vm.configs.showUserAgent)?_c('span',{staticClass:"useragent-info",domProps:{"innerHTML":_vm._s(_vm.compileUserAgent)}}):_vm._e()])])])]),_c('div',{staticClass:"body markdown-body"},[_c('p',{domProps:{"innerHTML":_vm._s(_vm.compileContent)}})])])]),_c('hr'),(_vm.comment.children)?_c('ul',{staticClass:"children"},[_vm._l((_vm.comment.children),function(children,index){return [_c('CommentNode',{key:index,attrs:{"isChild":true,"targetId":_vm.targetId,"target":_vm.target,"comment":children,"options":_vm.options,"configs":_vm.configs,"depth":_vm.selfAddDepth,"parent":_vm.comment}})]})],2):_vm._e()]),_c('CommentEditor',{attrs:{"targetId":_vm.targetId,"target":_vm.target,"replyComment":_vm.comment,"options":_vm.options,"configs":_vm.configs}})],1)}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/CommentNode.vue?vue&type=template&id=2051dab4&
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.concat.js
-var es_array_concat = __webpack_require__("99af");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.index-of.js
-var es_array_index_of = __webpack_require__("c975");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.function.name.js
-var es_function_name = __webpack_require__("b0c0");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.number.constructor.js
-var es_number_constructor = __webpack_require__("a9e3");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.exec.js
-var es_regexp_exec = __webpack_require__("ac1f");
+// CONCATENATED MODULE: ./src/components/CommentNode.vue?vue&type=template&id=085067ed&
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.replace.js
 var es_string_replace = __webpack_require__("5319");
@@ -15532,18 +14053,13 @@ var marked_default = /*#__PURE__*/__webpack_require__.n(marked);
 // EXTERNAL MODULE: ./src/utils/emojiutil.js
 var emojiutil = __webpack_require__("f058");
 
-// EXTERNAL MODULE: ./src/components/CommentEditor.vue + 42 modules
+// EXTERNAL MODULE: ./src/components/CommentEditor.vue + 40 modules
 var CommentEditor = __webpack_require__("3f17");
 
 // EXTERNAL MODULE: ./src/utils/globals.js
 var globals = __webpack_require__("0e4d");
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/CommentNode.vue?vue&type=script&lang=js&
-
-
-
-
-
 
 //
 //
@@ -15665,26 +14181,27 @@ var globals = __webpack_require__("0e4d");
       type: String,
       required: false,
       default: "posts",
-      validator: function validator(value) {
+      validator: function (value) {
         return ["posts", "sheets", "journals"].indexOf(value) !== -1;
       }
     },
     comment: {
       type: Object,
       required: false,
-      default: function _default() {}
+      default: () => {}
     },
     options: {
       type: Object,
       required: false,
-      default: function _default() {}
+      default: () => {}
     },
     configs: {
       type: Object,
       required: true
     }
   },
-  data: function data() {
+
+  data() {
     return {
       editing: false,
       level: [{
@@ -15712,25 +14229,31 @@ var globals = __webpack_require__("0e4d");
       globalData: globals["a" /* default */]
     };
   },
-  created: function created() {
-    var renderer = {
-      image: function image(href, title) {
-        return "\n          <img src=\"".concat(href, "\" title=\"").concat(title, "\" class=\"lazyload comment_inline_img\" onerror=\"imgError(this)\">");
+
+  created() {
+    const renderer = {
+      image(href, title) {
+        return `
+          <img src="${href}" title="${title}" class="lazyload comment_inline_img" onerror="imgError(this)">`;
       },
-      link: function link(href, title, text) {
-        return "<a href=\"".concat(href, "\" title=\"").concat(title, "\" target=\"_blank\" rel=\"nofollow\">").concat(text, "</a>");
+
+      link(href, title, text) {
+        return `<a href="${href}" title="${title}" target="_blank" rel="nofollow">${text}</a>`;
       }
+
     };
     marked_default.a.use({
-      renderer: renderer
+      renderer
     });
   },
+
   computed: {
-    avatar: function avatar() {
-      var gravatarSource = this.options.gravatar_source || this.configs.gravatarSource;
-      return gravatarSource + "/".concat(this.comment.gravatarMd5, "?s=256&d=") + this.options.comment_gravatar_default;
+    avatar() {
+      const gravatarSource = this.options.gravatar_source || this.configs.gravatarSource;
+      return gravatarSource + `/${this.comment.gravatarMd5}?s=256&d=` + this.options.comment_gravatar_default;
     },
-    compileContent: function compileContent() {
+
+    compileContent() {
       var at = "";
 
       if (this.parent != undefined) {
@@ -15738,17 +14261,19 @@ var globals = __webpack_require__("0e4d");
       } // 获取转换后的marked
 
 
-      var markedHtml = marked_default()(at + this.comment.content); // 处理其中的img
+      let markedHtml = marked_default()(at + this.comment.content); // 处理其中的img
       // 处理表情包
 
-      var emoji = Object(emojiutil["a" /* renderedEmojiHtml */])(markedHtml); // 将回车转换为br
+      let emoji = Object(emojiutil["a" /* renderedEmojiHtml */])(markedHtml); // 将回车转换为br
 
       return Object(util["h" /* return2Br */])(emoji);
     },
-    createTimeAgo: function createTimeAgo() {
+
+    createTimeAgo() {
       return Object(util["i" /* timeAgo */])(this.comment.createTime);
     },
-    compileUserAgent: function compileUserAgent() {
+
+    compileUserAgent() {
       var parser = new ua_parser_default.a();
       parser.setUA(this.comment.userAgent);
       var result = parser.getResult();
@@ -15780,20 +14305,25 @@ var globals = __webpack_require__("0e4d");
           break;
       }
 
-      return "( <img src=\"" + browserImg + " \">  " + result.browser.name + " " + result.browser.version + " \n       <img src=\"" + uaImg + "\"> " + result.os.name + " " + result.os.version + " )";
+      return `( <img src="` + browserImg + ` ">  ` + result.browser.name + " " + result.browser.version + ` 
+       <img src="` + uaImg + `"> ` + result.os.name + " " + result.os.version + ` )`;
     },
-    selfAddDepth: function selfAddDepth() {
+
+    selfAddDepth() {
       return this.depth + 1;
     },
-    commentClass: function commentClass() {
+
+    commentClass() {
       return "depth-" + this.depth + " comment-" + this.comment.id;
     }
+
   },
   methods: {
-    handleReplyClick: function handleReplyClick() {
+    handleReplyClick() {
       // 设置状态为回复状态
       this.globalData.replyId = this.comment.id;
     }
+
   }
 });
 // CONCATENATED MODULE: ./src/components/CommentNode.vue?vue&type=script&lang=js&
@@ -15817,7 +14347,7 @@ var component = Object(componentNormalizer["a" /* default */])(
   null,
   null,
   null
-  
+  ,true
 )
 
 /* harmony default export */ var CommentNode = __webpack_exports__["default"] = (component.exports);
